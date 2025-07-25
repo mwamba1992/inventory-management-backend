@@ -38,7 +38,7 @@ import { ReportsModule } from './reports/reports.module';
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
+      host: '84.247.178.93',
       port: 5432,
       password: 'amtz',
       username: 'amtz',
@@ -61,7 +61,7 @@ import { ReportsModule } from './reports/reports.module';
         Sale,
         Expense
       ],
-      database: 'inventory',
+      database: 'inventorydb',
       schema: 'core',
       synchronize: true,
       logging: false,
