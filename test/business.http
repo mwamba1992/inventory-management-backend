@@ -1,0 +1,32 @@
+### Create a new Business record
+POST http://localhost:3000/business
+Content-Type: application/json
+
+{
+  "name": "Acme Corp",
+  "description": "Global provider of road runner deterrents",
+  "phone": "+1234567890",
+  "email": "info@acmecorp.com",
+  "website": "https://www.acmecorp.com"
+}
+
+### Retrieve all Businesses
+GET http://localhost:3000/business
+
+### Retrieve a single Business by ID
+GET http://localhost:3000/business/1
+
+### Update an existing Business
+PUT http://localhost:3000/business/1
+Content-Type: application/json
+
+{
+  "name": "Acme Corp Updated",
+  "description": "Leading innovator in cartoon contraptions",
+  "phone": "+0987654321",
+  "email": "support@acme-innovations.com",
+  "website": "https://acme-innovations.com"
+}
+
+### Delete a Business
+DELETE http://localhost:3000/business/1

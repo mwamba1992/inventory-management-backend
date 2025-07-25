@@ -1,0 +1,27 @@
+### Create a new Common record
+POST http://localhost:3000/common
+Content-Type: application/json
+
+{
+  "code": "CAT001",
+  "description": "Office Supplies",
+  "type": "Category"
+}
+
+### Retrieve all Commons
+GET http://localhost:3000/common
+
+### Retrieve a single Common by ID
+GET http://localhost:3000/common/1
+
+### Update an existing Common
+PUT http://localhost:3000/common/1
+Content-Type: application/json
+
+{
+  "description": "Updated Office Supplies",
+  "type": "UpdatedCategory"
+}
+
+### Delete a Common
+DELETE http://localhost:3000/commons/1
