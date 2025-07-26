@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
@@ -22,7 +30,9 @@ export class PermissionController {
 
   // Create a new permission
   @Post()
-  async create(@Body() createPermissionDto: CreatePermissionDto): Promise<Permission> {
+  async create(
+    @Body() createPermissionDto: CreatePermissionDto,
+  ): Promise<Permission> {
     return this.permissionService.create(createPermissionDto);
   }
 
