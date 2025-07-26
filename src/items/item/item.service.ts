@@ -57,7 +57,10 @@ export class ItemService {
   }
 
   async findAll(): Promise<Item[]> {
-    return this.itemRepository.find();
+    return this.itemRepository.find({
+      relations: ['category', 'warehouse', 'business', 'prices', 'stock'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(id: number): Promise<Item> {
@@ -306,5 +309,4 @@ export class ItemService {
       return total + item.quantity * sellingPrice;
     }, 0);
   }
-
 }
