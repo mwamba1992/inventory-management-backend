@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   Put,
@@ -35,7 +35,7 @@ export class UserController {
     return this.userService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   //@UseGuards(AuthGuard)
   update(@Param('id') id: string, @Body() updateUserDto: CreateUserDto) {
     return this.userService.update(+id, updateUserDto);

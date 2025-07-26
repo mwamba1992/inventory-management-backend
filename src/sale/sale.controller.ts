@@ -4,7 +4,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   ParseIntPipe,
@@ -59,7 +59,7 @@ export class SaleController {
     return this.saleService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSaleDto) {
     return this.saleService.update(id, dto);
   }

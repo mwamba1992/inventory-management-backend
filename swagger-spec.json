@@ -151,7 +151,7 @@
           "Item"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "ItemController_updateItemStock",
         "parameters": [
           {
@@ -262,7 +262,7 @@
           "Item"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "ItemController_updateItemAccountMapping",
         "parameters": [
           {
@@ -373,7 +373,7 @@
           "Item"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "ItemController_updateItemPrice",
         "parameters": [
           {
@@ -559,7 +559,7 @@
           "Transaction"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "TransactionController_update",
         "parameters": [
           {
@@ -670,7 +670,7 @@
           "Account"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "AccountController_update",
         "parameters": [
           {
@@ -1125,7 +1125,7 @@
           "Warehouses"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "WarehousesController_update",
         "parameters": [
           {
@@ -1179,7 +1179,7 @@
       }
     },
     "/warehouses/{id}/stock": {
-      "patch": {
+      "Put": {
         "operationId": "WarehousesController_updateStock",
         "parameters": [
           {
@@ -1259,7 +1259,7 @@
           "ItemSuppliers"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "ItemSuppliersController_update",
         "parameters": [
           {
@@ -1384,7 +1384,7 @@
           "User"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "UserController_update",
         "parameters": [
           {
@@ -1693,7 +1693,7 @@
           "Role"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "RoleController_update",
         "parameters": [
           {
@@ -1852,7 +1852,7 @@
           "customers"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "CustomerController_update",
         "parameters": [
           {
@@ -2033,7 +2033,7 @@
           "sales"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "SaleController_update",
         "parameters": [
           {
@@ -2224,7 +2224,7 @@
           "Reports"
         ]
       },
-      "patch": {
+      "Put": {
         "operationId": "ReportsController_update",
         "parameters": [
           {

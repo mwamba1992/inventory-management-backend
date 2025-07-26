@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete } from '@nestjs/common';
 import { ItemSuppliersService } from './item-suppliers.service';
 import { CreateItemSupplierDto } from './dto/create-item-supplier.dto';
 import { UpdateItemSupplierDto } from './dto/update-item-supplier.dto';
@@ -22,7 +22,7 @@ export class ItemSuppliersController {
     return this.service.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() dto: UpdateItemSupplierDto) {
     return this.service.update(+id, dto);
   }

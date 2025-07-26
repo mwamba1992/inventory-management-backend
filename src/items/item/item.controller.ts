@@ -7,7 +7,7 @@ import {
   Delete,
   ParseIntPipe,
   Put,
-  Patch,
+  Put,
 } from '@nestjs/common';
 import { ItemService } from './item.service';
 import { CreateItemDto } from './dto/create-item.dto';
@@ -73,7 +73,7 @@ export class ItemController {
     return this.itemService.findOneItemStock(id);
   }
 
-  @Patch('item-stocks/:id')
+  @Put('item-stocks/:id')
   async updateItemStock(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateItemStockDto: UpdateItemStockDto,
@@ -108,7 +108,7 @@ export class ItemController {
     return this.itemService.findOneItemAccountMapping(id);
   }
 
-  @Patch('account-mappings/:id')
+  @Put('account-mappings/:id')
   async updateItemAccountMapping(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateItemAccountMappingDto: UpdateItemAccountMappingDto,
@@ -146,7 +146,7 @@ export class ItemController {
     return this.itemService.findOneItemPrice(id);
   }
 
-  @Patch('item-prices/:id')
+  @Put('item-prices/:id')
   async updateItemPrice(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateItemPriceDto: UpdateItemPriceDto,

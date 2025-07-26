@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   Put,
@@ -30,7 +30,7 @@ export class RoleController {
     return this.roleService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: number, @Body() updateRoleDto: CreateRoleDto) {
     return this.roleService.update(+id, updateRoleDto);
   }

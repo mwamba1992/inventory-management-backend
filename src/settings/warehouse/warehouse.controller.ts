@@ -4,7 +4,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   ParseIntPipe,
@@ -39,7 +39,7 @@ export class WarehousesController {
     return await this.warehousesService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateWarehouseDto: UpdateWarehouseDto,
@@ -53,7 +53,7 @@ export class WarehousesController {
     await this.warehousesService.remove(id);
   }
 
-  @Patch(':id/stock')
+  @Put(':id/stock')
   async updateStock(
     @Param('id', ParseIntPipe) id: number,
     @Body('currentStock') currentStock: number,
