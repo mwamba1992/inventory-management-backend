@@ -43,6 +43,17 @@ export class SaleController {
   findTotalSalesCount() {
     return this.saleService.totalSaleCount();
   }
+  @Post('sales-metrics')
+  findSalesMetrics(@Body() dto: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+    return this.saleService.getSaleMetrics(dto.days);
+  }
+
+  @Post('sales-by-days')
+  findSalesByDays(@Body() dto: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+    return this.saleService.getSalesWithinNumberOfDays(dto.days);
+  }
 
   @Get('total-sales-by-week')
   findTotalSalesByWeek() {

@@ -31,7 +31,6 @@ import { SaleModule } from './sale/sale.module';
 import { Sale } from './sale/entities/sale.entity';
 import { ExpenseModule } from './expense/expense.module';
 import { Expense } from './expense/entities/expense.entity';
-import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -59,7 +58,7 @@ import { ReportsModule } from './reports/reports.module';
         Permission,
         Customer,
         Sale,
-        Expense
+        Expense,
       ],
       database: 'inventorydb',
       schema: 'core',
@@ -78,7 +77,6 @@ import { ReportsModule } from './reports/reports.module';
     CustomerModule,
     SaleModule,
     ExpenseModule,
-    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

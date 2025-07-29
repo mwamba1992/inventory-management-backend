@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import { Sale } from './entities/sale.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
@@ -216,5 +216,90 @@ export class SaleService {
         };
       }),
     );
+  }
+
+  async getSaleMetrics(days: number = 30){
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+
+    const growthStartDate =  new Date();
+    growthStartDate.setDate(startDate.getDate()-days);
+
+    console.log(
+      `Fetching sales metrics from ${startDate.toISOString()} to now`,
+    );
+
+    const sales = await this.saleRepo
+      .createQueryBuilder('sale')
+      .select('DATE(sale.createdAt)', 'date')
+      .addSelect('SUM(sale.amountPaid)', 'totalSales')
+      .addSelect('COUNT(sale.id)', 'totalCount')
+      .where('sale.createdAt >= :startDate', { startDate })
+      .groupBy('date')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    const growthSales = await this.saleRepo
+      .createQueryBuilder('sale')
+      .select('DATE(sale.createdAt)', 'date')
+      .addSelect('SUM(sale.amountPaid)', 'totalSales')
+      .addSelect('COUNT(sale.id)', 'totalCount')
+      .where('sale.createdAt >= :growthStartDate', { growthStartDate })
+      .andWhere('sale.createdAt < :startDate', { startDate })
+      .groupBy('date')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    console.log(`Fetched ${sales.length} sales records`);
+    console.log(sales);
+
+    if (!sales || sales.length === 0) {
+      return {
+        units: 0,
+        total: 0,
+      };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const current = parseFloat(sales[0].totalSales) || 0;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
+    let previous = 0;
+    if (growthSales.length > 0) {
+      previous = parseFloat(growthSales[0].totalSales) || 0;
+    }
+
+    let growth = 0;
+    if (previous > 0) {
+      growth = ((current - previous) / previous) * 100;
+    }
+
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+      total: parseFloat(sales[0].totalSales),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+      units: parseInt(sales[0].totalCount, 10),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      growth: growth,
+    };
+  }
+
+  async getSalesWithinNumberOfDays(days: number = 30): Promise<Sale[]> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    console.log(`Fetching sales from ${startDate.toISOString()} to now`);
+
+    const sales = await this.saleRepo.find({
+      where: {
+        createdAt: MoreThanOrEqual(startDate),
+      },
+      relations: ['customer', 'item', 'warehouseId'],
+      order: { createdAt: 'DESC' },
+    });
+
+    console.log(`Fetched ${sales.length} sales records`);
+    return sales;
   }
 }

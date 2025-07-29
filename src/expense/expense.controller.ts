@@ -19,6 +19,12 @@ export class ExpenseController {
     return this.expenseService.create(dto);
   }
 
+  @Post('sales-expense-breakdown')
+  findSalesExpenseBreakdown(@Body() dto: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+    return this.expenseService.getRevenueExpenseBreakDown(dto.days);
+  }
+
   @Get()
   findAll() {
     return this.expenseService.findAll();

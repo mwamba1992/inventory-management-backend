@@ -1966,6 +1966,34 @@
         ]
       }
     },
+    "/sales/sales-metrics": {
+      "post": {
+        "operationId": "SaleController_findSalesMetrics",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sales"
+        ]
+      }
+    },
+    "/sales/sales-by-days": {
+      "post": {
+        "operationId": "SaleController_findSalesByDays",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sales"
+        ]
+      }
+    },
     "/sales/total-sales-by-week": {
       "get": {
         "operationId": "SaleController_findTotalSalesByWeek",
@@ -2091,6 +2119,20 @@
         ]
       }
     },
+    "/expenses/sales-expense-breakdown": {
+      "post": {
+        "operationId": "ExpenseController_findSalesExpenseBreakdown",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
     "/expenses/{id}": {
       "get": {
         "operationId": "ExpenseController_findOne",
@@ -2132,117 +2174,6 @@
         },
         "tags": [
           "Expense"
-        ]
-      }
-    },
-    "/reports": {
-      "post": {
-        "operationId": "ReportsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateReportDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reports"
-        ]
-      },
-      "get": {
-        "operationId": "ReportsController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reports"
-        ]
-      }
-    },
-    "/reports/{id}": {
-      "get": {
-        "operationId": "ReportsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reports"
-        ]
-      },
-      "put": {
-        "operationId": "ReportsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateReportDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reports"
-        ]
-      },
-      "delete": {
-        "operationId": "ReportsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reports"
         ]
       }
     }
@@ -2442,14 +2373,6 @@
         }
       },
       "CreateExpenseDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateReportDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateReportDto": {
         "type": "object",
         "properties": {}
       }
