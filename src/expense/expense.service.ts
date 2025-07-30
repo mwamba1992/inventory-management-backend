@@ -14,6 +14,19 @@ export class ExpenseService {
     private readonly saleRepo: Repository<Sale>,
   ) {}
 
+  async update(
+    id: number,
+    updateExpenseDto: CreateExpenseDto,
+  ): Promise<Expense> {
+    const expense = await this.expenseRepo.findOne({
+      where: { id },
+    });
+    if (!expense) {
+      throw new Error('Expense not found');
+    }
+    Object.assign(expense, updateExpenseDto);
+    return this.expenseRepo.save(expense);
+  }
   async create(createExpenseDto: CreateExpenseDto): Promise<Expense> {
     const expense = this.expenseRepo.create({
       ...createExpenseDto,
@@ -110,5 +123,25 @@ export class ExpenseService {
         Number(revenueSumResult.totalRevenue) - Number(totalCostOfGoods),
       profitMargin: profitMargin
     };
+  }
+
+  async getGroupExpenses(days: number = 30){
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const expenses = await this.expenseRepo
+      .createQueryBuilder('expense')
+      .select('expense.category', 'category')
+      .addSelect('SUM(expense.amount)', "amount")
+      .where('expense.expenseDate >= :startDate', { startDate })
+      .groupBy('expense.category')
+      .orderBy('SUM(expense.amount)', 'DESC')
+      .getRawMany();
+
+    return expenses.map((expense) => ({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+      category: expense.category,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      totalAmount: Number(expense.amount),
+    }));
   }
 }

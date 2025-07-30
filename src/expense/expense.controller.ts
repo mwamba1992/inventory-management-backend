@@ -5,7 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  Post,
+  Post, Put,
 } from '@nestjs/common';
 import { ExpenseService } from './expense.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
@@ -19,10 +19,21 @@ export class ExpenseController {
     return this.expenseService.create(dto);
   }
 
+  @Put(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: CreateExpenseDto) {
+    return this.expenseService.update(id, dto);
+  }
+
   @Post('sales-expense-breakdown')
   findSalesExpenseBreakdown(@Body() dto: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
     return this.expenseService.getRevenueExpenseBreakDown(dto.days);
+  }
+
+  @Post('expense-breakdown')
+  findExpenseBreakdown(@Body() dto: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+    return this.expenseService.getGroupExpenses(dto.days);
   }
 
   @Get()

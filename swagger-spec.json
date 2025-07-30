@@ -2133,6 +2133,20 @@
         ]
       }
     },
+    "/expenses/expense-breakdown": {
+      "post": {
+        "operationId": "ExpenseController_findExpenseBreakdown",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
     "/expenses/{id}": {
       "get": {
         "operationId": "ExpenseController_findOne",
