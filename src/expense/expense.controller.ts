@@ -5,7 +5,9 @@ import {
   Get,
   Param,
   ParseIntPipe,
-  Post, Put,
+  Post,
+  Put,
+  Query,
 } from '@nestjs/common';
 import { ExpenseService } from './expense.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
@@ -34,6 +36,14 @@ export class ExpenseController {
   findExpenseBreakdown(@Body() dto: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
     return this.expenseService.getGroupExpenses(dto.days);
+  }
+
+  @Get('filter-by-dates')
+  findExpensesByDateRange(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.expenseService.findExpensesByDateRange(startDate, endDate);
   }
 
   @Get()

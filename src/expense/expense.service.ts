@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository, Between, MoreThan, LessThan } from 'typeorm';
 import { Expense } from './entities/expense.entity';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { Sale } from '../sale/entities/sale.entity';
@@ -143,5 +143,30 @@ export class ExpenseService {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       totalAmount: Number(expense.amount),
     }));
+  }
+
+  async findExpensesByDateRange(startDate?: string, endDate?: string): Promise<Expense[]> {
+    let whereCondition: any = {};
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include the entire end date
+      whereCondition.expenseDate = Between(start, end);
+    } else if (startDate) {
+      const start = new Date(startDate);
+      whereCondition.expenseDate = MoreThanOrEqual(start);
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include the entire end date
+      whereCondition.expenseDate = LessThan(end);
+    }
+
+    const expenses = await this.expenseRepo.find({
+      where: whereCondition,
+      order: { expenseDate: 'DESC' },
+    });
+
+    return expenses;
   }
 }

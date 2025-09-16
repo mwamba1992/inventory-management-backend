@@ -1994,6 +1994,20 @@
         ]
       }
     },
+    "/sales/send-whats-app-ads": {
+      "post": {
+        "operationId": "SaleController_sendWhatsAppAds",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sales"
+        ]
+      }
+    },
     "/sales/total-sales-by-week": {
       "get": {
         "operationId": "SaleController_findTotalSalesByWeek",
@@ -2119,35 +2133,38 @@
         ]
       }
     },
-    "/expenses/sales-expense-breakdown": {
-      "post": {
-        "operationId": "ExpenseController_findSalesExpenseBreakdown",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      }
-    },
-    "/expenses/expense-breakdown": {
-      "post": {
-        "operationId": "ExpenseController_findExpenseBreakdown",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      }
-    },
     "/expenses/{id}": {
+      "put": {
+        "operationId": "ExpenseController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      },
       "get": {
         "operationId": "ExpenseController_findOne",
         "parameters": [
@@ -2183,6 +2200,34 @@
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/expenses/sales-expense-breakdown": {
+      "post": {
+        "operationId": "ExpenseController_findSalesExpenseBreakdown",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/expenses/expense-breakdown": {
+      "post": {
+        "operationId": "ExpenseController_findExpenseBreakdown",
+        "parameters": [],
+        "responses": {
+          "201": {
             "description": ""
           }
         },

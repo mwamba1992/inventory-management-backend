@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository, Between, MoreThan, LessThan } from 'typeorm';
 import { Sale } from './entities/sale.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
@@ -13,6 +13,7 @@ import { Customer } from '../settings/customer/entities/customer.entity';
 import { Item } from '../items/item/entities/item.entity';
 import { Warehouse } from '../settings/warehouse/entities/warehouse.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
+
 
 @Injectable()
 export class SaleService {
@@ -218,13 +219,12 @@ export class SaleService {
     );
   }
 
-  async getSaleMetrics(days: number = 30){
+  async getSaleMetrics(days: number = 30) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-
-    const growthStartDate =  new Date();
-    growthStartDate.setDate(startDate.getDate()-days);
+    const growthStartDate = new Date();
+    growthStartDate.setDate(startDate.getDate() - days);
 
     console.log(
       `Fetching sales metrics from ${startDate.toISOString()} to now`,
@@ -263,7 +263,6 @@ export class SaleService {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const current = parseFloat(sales[0].totalSales) || 0;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 
     let previous = 0;
     if (growthSales.length > 0) {
@@ -280,7 +279,7 @@ export class SaleService {
       total: parseFloat(sales[0].totalSales),
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
       units: parseInt(sales[0].totalCount, 10),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
       growth: growth,
     };
   }
@@ -302,4 +301,31 @@ export class SaleService {
     console.log(`Fetched ${sales.length} sales records`);
     return sales;
   }
+
+  async findSalesByDateRange(startDate?: string, endDate?: string): Promise<Sale[]> {
+    let whereCondition: any = {};
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include the entire end date
+      whereCondition.createdAt = Between(start, end);
+    } else if (startDate) {
+      const start = new Date(startDate);
+      whereCondition.createdAt = MoreThanOrEqual(start);
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include the entire end date
+      whereCondition.createdAt = LessThan(end);
+    }
+
+    const sales = await this.saleRepo.find({
+      where: whereCondition,
+      relations: ['customer', 'item', 'warehouseId'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return sales;
+  }
+
 }

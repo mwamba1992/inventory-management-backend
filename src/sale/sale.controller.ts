@@ -8,16 +8,21 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { SaleService } from './sale.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { WhatsAppService } from './awarness.sales';
 
 @ApiTags('sales')
 @Controller('sales')
 export class SaleController {
-  constructor(private readonly saleService: SaleService) {}
+  constructor(
+    private readonly saleService: SaleService,
+    private readonly whatsAppService: WhatsAppService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateSaleDto) {
@@ -55,9 +60,22 @@ export class SaleController {
     return this.saleService.getSalesWithinNumberOfDays(dto.days);
   }
 
+  @Post('send-whats-app-ads')
+  sendWhatsAppAds() {
+    return this.whatsAppService.sendMarketMessageViaWhatsApp();
+  }
+
   @Get('total-sales-by-week')
   findTotalSalesByWeek() {
     return this.saleService.weeklySalesTrends();
+  }
+
+  @Get('filter-by-dates')
+  findSalesByDateRange(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.saleService.findSalesByDateRange(startDate, endDate);
   }
 
   @Get()
