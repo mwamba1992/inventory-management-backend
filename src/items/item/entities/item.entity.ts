@@ -21,10 +21,10 @@ export class Item extends BaseEntity {
   id: number;
 
   @Column()
-  name: string;
+  name: string | undefined;
 
   @Column({ nullable: true })
-  desc: string;
+  desc: string | undefined;
 
   @ManyToOne(() => Common, (category) => category.items, { nullable: true })
   category: Common;
