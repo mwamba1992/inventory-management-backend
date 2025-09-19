@@ -94,27 +94,10 @@ export class ItemService {
 
   async update(id: number, updateItemDto: UpdateItemDto): Promise<Item> {
     console.log(updateItemDto);
-    const item = await this.findOne(id);
-    item.name = updateItemDto.name;
-    item.desc = updateItemDto.desc;
-    if (updateItemDto.categoryId) {
-      item.category = await this.commonRepository.findOneByOrFail({
-        id: updateItemDto.categoryId,
-      });
-    }
-    if (updateItemDto.warehouseId) {
-      item.warehouse = await this.wareHouseRepository.findOneByOrFail({
-        id: updateItemDto.warehouseId,
-      });
-    }
-
-    if (updateItemDto.businessId) {
-      item.business = await this.businessRepository.findOneByOrFail({
-        id: updateItemDto.businessId,
-      });
-    }
-
-    console.log(item);
+    const item = await this.itemRepository.findOne({
+      where: { id },
+    });
+    if (!item) throw new Error('Item not found');
     Object.assign(item, updateItemDto);
     return this.itemRepository.save(item);
   }
