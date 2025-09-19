@@ -86,7 +86,9 @@ export class ItemService {
   }
 
   async update(id: number, updateItemDto: UpdateItemDto): Promise<Item> {
+    console.log(updateItemDto);
     const item = await this.findOne(id);
+    item.name = updateItemDto.name ?? item.name;
     return this.itemRepository.merge(item, updateItemDto);
   }
 
