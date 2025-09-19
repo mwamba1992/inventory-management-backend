@@ -17,6 +17,7 @@ import { ItemAccountMapping } from './entities/item-account-mapping.entity';
 import { CreateItemAccountMappingDto } from './dto/create-item-account-mapping.dto';
 import { UpdateItemAccountMappingDto } from './dto/update-item-account-mapping.dto';
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
+import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
 
 @Injectable()
 export class ItemService {
@@ -37,6 +38,8 @@ export class ItemService {
     private readonly itemAccountMappingRepository: Repository<ItemAccountMapping>,
     @InjectRepository(Warehouse)
     private readonly wareHouseRepository: Repository<Warehouse>,
+    @InjectRepository(ItemSupplier)
+    private readonly itemSupplierRepository: Repository<ItemSupplier>,
   ) {}
 
   async create(createItemDto: CreateItemDto): Promise<Item> {
@@ -44,12 +47,25 @@ export class ItemService {
     const item = new Item();
     item.name = createItemDto.name;
     item.desc = createItemDto.desc;
-    item.category = await this.commonRepository.findOneByOrFail({
-      id: createItemDto.categoryId,
-    });
-    item.warehouse = await this.wareHouseRepository.findOneByOrFail({
-      id: createItemDto.warehouseId,
-    });
+
+    if (createItemDto.categoryId) {
+      item.category = await this.commonRepository.findOneByOrFail({
+        id: createItemDto.categoryId,
+      });
+    }
+
+    if (createItemDto.warehouseId) {
+      item.warehouse = await this.wareHouseRepository.findOneByOrFail({
+        id: createItemDto.warehouseId,
+      });
+    }
+
+    if (createItemDto.supplierId) {
+      item.supplier = await this.itemSupplierRepository.findOneByOrFail({
+        id: createItemDto.supplierId,
+      });
+    }
+
     item.business = await this.businessRepository.findOneByOrFail({
       id: createItemDto.businessId,
     });
@@ -58,7 +74,7 @@ export class ItemService {
 
   async findAll(): Promise<Item[]> {
     return this.itemRepository.find({
-      relations: ['category', 'warehouse', 'business', 'prices', 'stock'],
+      relations: ['category', 'warehouse', 'supplier', 'business', 'prices', 'stock'],
       order: { createdAt: 'DESC' },
     });
   }

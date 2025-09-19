@@ -11,6 +11,7 @@ import { Business } from '../../settings/business/entities/business.entity';
 import { ItemAccountMapping } from './entities/item-account-mapping.entity';
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { Sale } from '../../sale/entities/sale.entity';
+import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { Sale } from '../../sale/entities/sale.entity';
       Business,
       ItemAccountMapping,
       Warehouse,
-      Sale
+      Sale,
+      ItemSupplier
     ]),
   ],
   controllers: [ItemController],

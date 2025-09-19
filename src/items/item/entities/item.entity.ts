@@ -13,6 +13,7 @@ import { ItemPrice } from './item-price.entity';
 import { ItemStock } from './item-stock.entity';
 import { ItemAccountMapping } from './item-account-mapping.entity';
 import { Warehouse } from '../../../settings/warehouse/entities/warehouse.entity';
+import { ItemSupplier } from '../../../settings/item-suppliers/entities/item-supplier.entity';
 
 @Entity()
 export class Item extends BaseEntity {
@@ -22,14 +23,17 @@ export class Item extends BaseEntity {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   desc: string;
 
-  @ManyToOne(() => Common, (category) => category.items)
+  @ManyToOne(() => Common, (category) => category.items, { nullable: true })
   category: Common;
 
-  @ManyToOne(() => Warehouse, (warehouse) => warehouse.items)
+  @ManyToOne(() => Warehouse, (warehouse) => warehouse.items, { nullable: true })
   warehouse: Warehouse;
+
+  @ManyToOne(() => ItemSupplier, { nullable: true })
+  supplier: ItemSupplier;
 
   @ManyToOne(() => Business, (business) => business.items)
   business: Business;

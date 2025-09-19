@@ -7,11 +7,14 @@ export class CreateItemDto {
   @IsOptional()
   desc: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   categoryId: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   warehouseId: number;
+
+  @IsOptional()
+  supplierId: number;
 
   @IsNotEmpty()
   businessId: number;
