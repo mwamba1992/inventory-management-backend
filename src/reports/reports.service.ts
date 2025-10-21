@@ -111,12 +111,13 @@ export class ReportsService {
       this.getDateRange(filter);
 
     // Get current period data
-    const [currentRevenue, currentOrders, currentCustomers] =
-      await Promise.all([
+    const [currentRevenue, currentOrders, currentCustomers] = await Promise.all(
+      [
         this.getTotalRevenue(startDate, endDate, filter.businessId),
         this.getTotalOrders(startDate, endDate, filter.businessId),
         this.getActiveCustomers(startDate, endDate, filter.businessId),
-      ]);
+      ],
+    );
 
     // Get previous period data for comparison
     const [previousRevenue, previousOrders, previousCustomers] =
@@ -150,7 +151,9 @@ export class ReportsService {
       this.getTopProducts(startDate, endDate, filter.businessId, 10),
     ]);
 
-    const period = this.getPeriodLabel(filter.dateRange || DateRange.LAST_30_DAYS);
+    const period = this.getPeriodLabel(
+      filter.dateRange || DateRange.LAST_30_DAYS,
+    );
 
     return {
       totalRevenue: {
@@ -239,13 +242,13 @@ export class ReportsService {
 
     // Revenue from WhatsApp orders (only confirmed/delivered orders)
     const whatsappQuery = this.whatsappOrderRepository
-      .createQueryBuilder('order')
-      .select('COALESCE(SUM(order.totalAmount), 0)', 'total')
-      .where('order.createdAt BETWEEN :startDate AND :endDate', {
+      .createQueryBuilder('wo')
+      .select('COALESCE(SUM(wo.totalAmount), 0)', 'total')
+      .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       })
-      .andWhere('order.status IN (:...statuses)', {
+      .andWhere('wo.status IN (:...statuses)', {
         statuses: ['confirmed', 'processing', 'ready', 'delivered'],
       });
 
@@ -274,12 +277,12 @@ export class ReportsService {
     const salesCount = await salesQuery.getCount();
 
     const whatsappCount = await this.whatsappOrderRepository
-      .createQueryBuilder('order')
-      .where('order.createdAt BETWEEN :startDate AND :endDate', {
+      .createQueryBuilder('wo')
+      .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       })
-      .andWhere('order.status != :status', { status: 'cancelled' })
+      .andWhere('wo.status != :status', { status: 'cancelled' })
       .getCount();
 
     return salesCount + whatsappCount;
@@ -306,20 +309,20 @@ export class ReportsService {
     const salesCustomers = await salesQuery.getRawMany();
 
     const whatsappCustomers = await this.whatsappOrderRepository
-      .createQueryBuilder('order')
-      .select('DISTINCT order.customerId')
-      .where('order.createdAt BETWEEN :startDate AND :endDate', {
+      .createQueryBuilder('wo')
+      .select('DISTINCT wo.customer_id', 'customer_id')
+      .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       })
-      .andWhere('order.customerId IS NOT NULL')
-      .andWhere('order.status != :status', { status: 'cancelled' })
+      .andWhere('wo.customer_id IS NOT NULL')
+      .andWhere('wo.status != :status', { status: 'cancelled' })
       .getRawMany();
 
     // Combine and deduplicate customer IDs
     const uniqueCustomerIds = new Set([
       ...salesCustomers.map((c) => c.customer_id).filter((id) => id),
-      ...whatsappCustomers.map((c) => c.order_customerId).filter((id) => id),
+      ...whatsappCustomers.map((c) => c.customer_id).filter((id) => id),
     ]);
 
     return uniqueCustomerIds.size;
@@ -350,16 +353,16 @@ export class ReportsService {
 
     // Get WhatsApp orders data
     const whatsappData = await this.whatsappOrderRepository
-      .createQueryBuilder('order')
-      .select('DATE(order.createdAt)', 'date')
-      .addSelect('COALESCE(SUM(order.totalAmount), 0)', 'revenue')
+      .createQueryBuilder('wo')
+      .select('DATE(wo.createdAt)', 'date')
+      .addSelect('COALESCE(SUM(wo.totalAmount), 0)', 'revenue')
       .addSelect('COUNT(*)', 'orders')
-      .where('order.createdAt BETWEEN :startDate AND :endDate', {
+      .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       })
-      .andWhere('order.status != :status', { status: 'cancelled' })
-      .groupBy('DATE(order.createdAt)')
+      .andWhere('wo.status != :status', { status: 'cancelled' })
+      .groupBy('DATE(wo.createdAt)')
       .orderBy('date', 'ASC')
       .getRawMany();
 
@@ -389,7 +392,7 @@ export class ReportsService {
     });
 
     return Array.from(dataMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date),
+      String(a.date).localeCompare(String(b.date)),
     );
   }
 
@@ -594,7 +597,7 @@ export class ReportsService {
       .select('customer.id', 'id')
       .addSelect('customer.name', 'name')
       .addSelect('COUNT(sale.id)', 'totalOrders')
-      .addSelect('COALESCE(SUM(sale.totalAmount), 0)', 'totalSpent')
+      .addSelect('COALESCE(SUM(sale.amountPaid), 0)', 'totalSpent')
       .where('sale.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
@@ -605,18 +608,18 @@ export class ReportsService {
       .getRawMany();
 
     const topCustomersFromWhatsApp = await this.whatsappOrderRepository
-      .createQueryBuilder('order')
-      .leftJoin('order.customer', 'customer')
+      .createQueryBuilder('wo')
+      .leftJoin('wo.customer', 'customer')
       .select('customer.id', 'id')
       .addSelect('customer.name', 'name')
-      .addSelect('COUNT(order.id)', 'totalOrders')
-      .addSelect('COALESCE(SUM(order.totalAmount), 0)', 'totalSpent')
-      .where('order.createdAt BETWEEN :startDate AND :endDate', {
+      .addSelect('COUNT(wo.id)', 'totalOrders')
+      .addSelect('COALESCE(SUM(wo.totalAmount), 0)', 'totalSpent')
+      .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       })
       .andWhere('customer.id IS NOT NULL')
-      .andWhere('order.status != :status', { status: 'cancelled' })
+      .andWhere('wo.status != :status', { status: 'cancelled' })
       .groupBy('customer.id')
       .addGroupBy('customer.name')
       .getRawMany();

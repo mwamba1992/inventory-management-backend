@@ -1,7 +1,6 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
-import { AuthGuard } from '../auth/auth.guard';
 import {
   BusinessOverviewReport,
   CustomerReport,
@@ -9,7 +8,6 @@ import {
 } from './interfaces/report.interface';
 
 @Controller('reports')
-@UseGuards(AuthGuard)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
