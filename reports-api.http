@@ -1,0 +1,238 @@
+###
+# Business Reports API Testing
+# Use this file with VS Code REST Client extension or similar tools
+###
+
+@baseUrl = http://localhost:3000
+@token = YOUR_JWT_TOKEN_HERE
+
+### ==========================================
+### BUSINESS REPORTS ENDPOINTS
+### ==========================================
+
+### 1. Get Business Overview Report - Last 30 Days (Default)
+GET {{baseUrl}}/reports/business-overview
+Authorization: Bearer {{token}}
+
+### 2. Get Business Overview Report - Last 7 Days
+GET {{baseUrl}}/reports/business-overview?dateRange=last_7_days
+Authorization: Bearer {{token}}
+
+### 3. Get Business Overview Report - Last 90 Days
+GET {{baseUrl}}/reports/business-overview?dateRange=last_90_days
+Authorization: Bearer {{token}}
+
+### 4. Get Business Overview Report - This Month
+GET {{baseUrl}}/reports/business-overview?dateRange=this_month
+Authorization: Bearer {{token}}
+
+### 5. Get Business Overview Report - Last Month
+GET {{baseUrl}}/reports/business-overview?dateRange=last_month
+Authorization: Bearer {{token}}
+
+### 6. Get Business Overview Report - This Year
+GET {{baseUrl}}/reports/business-overview?dateRange=this_year
+Authorization: Bearer {{token}}
+
+### 7. Get Business Overview Report - Custom Date Range
+GET {{baseUrl}}/reports/business-overview?startDate=2025-01-01&endDate=2025-10-21
+Authorization: Bearer {{token}}
+
+### 8. Get Inventory Report
+GET {{baseUrl}}/reports/inventory
+Authorization: Bearer {{token}}
+
+### 9. Get Customer Report - Last 30 Days
+GET {{baseUrl}}/reports/customers?dateRange=last_30_days
+Authorization: Bearer {{token}}
+
+### 10. Get Customer Report - Custom Date Range
+GET {{baseUrl}}/reports/customers?startDate=2025-01-01&endDate=2025-10-21
+Authorization: Bearer {{token}}
+
+### ==========================================
+### RESPONSE EXAMPLES
+### ==========================================
+
+/*
+Business Overview Response:
+{
+  "totalRevenue": {
+    "current": 125000,
+    "previous": 111607,
+    "percentageChange": 12.5,
+    "label": "Total Revenue",
+    "period": "Last 30 days"
+  },
+  "totalOrders": {
+    "current": 1250,
+    "previous": 1154,
+    "percentageChange": 8.3,
+    "label": "Total Orders",
+    "period": "Last 30 days"
+  },
+  "activeCustomers": {
+    "current": 320,
+    "previous": 277,
+    "percentageChange": 15.2,
+    "label": "Active Customers",
+    "period": "Last 30 days"
+  },
+  "avgOrderValue": {
+    "current": 100,
+    "previous": 102,
+    "percentageChange": -2.1,
+    "label": "Avg Order Value",
+    "period": "Last 30 days"
+  },
+  "salesTrend": [
+    {
+      "date": "2025-09-21",
+      "revenue": 3500,
+      "orders": 35
+    },
+    {
+      "date": "2025-09-22",
+      "revenue": 4200,
+      "orders": 42
+    }
+  ],
+  "topProducts": [
+    {
+      "id": 1,
+      "name": "Laptop Dell XPS 15",
+      "code": "PROD-001",
+      "revenue": 15000,
+      "quantitySold": 10,
+      "orderCount": 10
+    },
+    {
+      "id": 2,
+      "name": "iPhone 13 Pro",
+      "code": "PROD-002",
+      "revenue": 12000,
+      "quantitySold": 12,
+      "orderCount": 12
+    }
+  ],
+  "dateRange": {
+    "startDate": "2025-09-21T00:00:00.000Z",
+    "endDate": "2025-10-21T00:00:00.000Z"
+  }
+}
+
+Inventory Report Response:
+{
+  "totalItems": 150,
+  "totalStockValue": 5000000,
+  "lowStockItems": 12,
+  "outOfStockItems": 5,
+  "itemsByCategory": [
+    {
+      "category": "Electronics",
+      "count": 45,
+      "value": 3000000
+    },
+    {
+      "category": "Food",
+      "count": 60,
+      "value": 1500000
+    },
+    {
+      "category": "Clothing",
+      "count": 35,
+      "value": 450000
+    }
+  ],
+  "items": [
+    {
+      "id": 1,
+      "productName": "Laptop Dell XPS 15",
+      "productCode": "PROD-001",
+      "currentStock": 25,
+      "minStock": 10,
+      "value": 375000,
+      "warehouse": "Main Warehouse",
+      "status": "In Stock",
+      "category": "Electronics"
+    },
+    {
+      "id": 2,
+      "productName": "iPhone 13 Pro",
+      "productCode": "PROD-002",
+      "currentStock": 5,
+      "minStock": 10,
+      "value": 50000,
+      "warehouse": "Main Warehouse",
+      "status": "Low Stock",
+      "category": "Electronics"
+    },
+    {
+      "id": 3,
+      "productName": "Desk Chair",
+      "productCode": "PROD-003",
+      "currentStock": 0,
+      "minStock": 5,
+      "value": 0,
+      "warehouse": "Secondary Warehouse",
+      "status": "Out of Stock",
+      "category": "Furniture"
+    }
+  ]
+}
+
+Customer Report Response:
+{
+  "totalCustomers": 500,
+  "newCustomers": 45,
+  "activeCustomers": 320,
+  "topCustomers": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "totalOrders": 25,
+      "totalSpent": 250000
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "totalOrders": 20,
+      "totalSpent": 180000
+    }
+  ]
+}
+*/
+
+### ==========================================
+### TESTING WITHOUT TOKEN (Will fail with 401)
+### ==========================================
+
+### 11. Test Without Authorization (Should return 401)
+GET {{baseUrl}}/reports/business-overview
+
+### ==========================================
+### NOTES
+### ==========================================
+
+/*
+Date Range Options:
+- last_7_days
+- last_30_days (default)
+- last_90_days
+- this_month
+- last_month
+- this_year
+- custom (provide startDate and endDate)
+
+To Get Your JWT Token:
+1. Login via POST {{baseUrl}}/auth/login
+2. Copy the token from the response
+3. Replace YOUR_JWT_TOKEN_HERE with the actual token
+
+Features:
+- All metrics include percentage change vs previous period
+- Sales trend shows daily revenue and order count
+- Top products ranked by revenue
+- Inventory grouped by category
+- Customer report shows top spenders
+*/

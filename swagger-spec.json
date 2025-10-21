@@ -2480,6 +2480,48 @@
           "WhatsApp"
         ]
       }
+    },
+    "/reports/business-overview": {
+      "get": {
+        "operationId": "ReportsController_getBusinessOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/inventory": {
+      "get": {
+        "operationId": "ReportsController_getInventoryReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/customers": {
+      "get": {
+        "operationId": "ReportsController_getCustomerReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
     }
   },
   "info": {

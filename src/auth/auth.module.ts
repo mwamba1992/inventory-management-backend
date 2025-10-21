@@ -42,5 +42,6 @@ import { UserContextService } from './user/dto/user.context';
   ],
   controllers: [AuthController],
   providers: [AuthService, UserService, UserContextService],
+  exports: [UserContextService],
 })
 export class AuthModule {}

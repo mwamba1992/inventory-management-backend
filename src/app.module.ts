@@ -35,6 +35,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module';
 import { WhatsAppOrder } from './whatsapp/entities/whatsapp-order.entity';
 import { WhatsAppOrderItem } from './whatsapp/entities/whatsapp-order-item.entity';
 import { WhatsAppSession } from './whatsapp/entities/whatsapp-session.entity';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { WhatsAppSession } from './whatsapp/entities/whatsapp-session.entity';
     SaleModule,
     ExpenseModule,
     WhatsAppModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
