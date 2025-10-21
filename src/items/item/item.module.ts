@@ -30,5 +30,6 @@ import { ItemSupplier } from '../../settings/item-suppliers/entities/item-suppli
   ],
   controllers: [ItemController],
   providers: [ItemService],
+  exports: [ItemService],
 })
 export class ItemModule {}

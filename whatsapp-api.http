@@ -1,0 +1,652 @@
+###
+# WhatsApp Chatbot API Testing
+# Use this file with VS Code REST Client extension or similar tools
+###
+
+@baseUrl = http://localhost:3000
+@phone = 255712345678
+
+### ==========================================
+### WEBHOOK ENDPOINTS
+### ==========================================
+
+### 1. Verify Webhook (GET)
+GET {{baseUrl}}/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=your_verify_token_here&hub.challenge=test_challenge_123
+Accept: application/json
+
+### 2. Simulate Incoming Message - "Hi" (Main Menu)
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Test Customer"
+          },
+          "wa_id": "{{phone}}"
+        }],
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.test_001",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "Hi"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### 3. Simulate User Selecting "Search by Code"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Test Customer"
+          },
+          "wa_id": "{{phone}}"
+        }],
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.test_002",
+          "timestamp": "1697980800",
+          "type": "interactive",
+          "interactive": {
+            "type": "list_reply",
+            "list_reply": {
+              "id": "search_by_code",
+              "title": "Search by Code"
+            }
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### 4. Simulate User Entering Product Code "PROD-001"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Test Customer"
+          },
+          "wa_id": "{{phone}}"
+        }],
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.test_003",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "PROD-001"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### 5. Simulate User Entering Quantity "2"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Test Customer"
+          },
+          "wa_id": "{{phone}}"
+        }],
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.test_004",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "2"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### 6. Simulate User Selecting "Browse Categories"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Test Customer"
+          },
+          "wa_id": "{{phone}}"
+        }],
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.test_005",
+          "timestamp": "1697980800",
+          "type": "interactive",
+          "interactive": {
+            "type": "list_reply",
+            "list_reply": {
+              "id": "browse_categories",
+              "title": "Browse Categories"
+            }
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### 7. Simulate User Selecting "View Cart"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Test Customer"
+          },
+          "wa_id": "{{phone}}"
+        }],
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.test_006",
+          "timestamp": "1697980800",
+          "type": "interactive",
+          "interactive": {
+            "type": "list_reply",
+            "list_reply": {
+              "id": "view_cart",
+              "title": "View Cart"
+            }
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### ==========================================
+### ORDER MANAGEMENT ENDPOINTS
+### ==========================================
+
+### 8. Get Order Statistics
+GET {{baseUrl}}/whatsapp/stats/orders
+Accept: application/json
+
+### 9. Get All WhatsApp Orders
+GET {{baseUrl}}/whatsapp/orders
+Accept: application/json
+
+### 10. Get Order by ID (replace 1 with actual order ID)
+GET {{baseUrl}}/whatsapp/orders/1
+Accept: application/json
+
+### 11. Get Orders by Phone Number
+GET {{baseUrl}}/whatsapp/orders/phone/{{phone}}
+Accept: application/json
+
+### 12. Update Order Status (replace 1 with actual order ID)
+PUT {{baseUrl}}/whatsapp/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "confirmed"
+}
+
+### 13. Update Order Status to Processing
+PUT {{baseUrl}}/whatsapp/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "processing"
+}
+
+### 14. Update Order Status to Ready
+PUT {{baseUrl}}/whatsapp/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "ready"
+}
+
+### 15. Update Order Status to Delivered
+PUT {{baseUrl}}/whatsapp/orders/1/status
+Content-Type: application/json
+
+{
+  "status": "delivered"
+}
+
+### 16. Cancel Order (replace 1 with actual order ID)
+PUT {{baseUrl}}/whatsapp/orders/1/cancel
+Content-Type: application/json
+
+### ==========================================
+### RELATED ENDPOINTS (for setup/testing)
+### ==========================================
+
+### 17. Get All Items (to see product codes)
+GET {{baseUrl}}/items
+Accept: application/json
+
+### 18. Get All Customers (to verify auto-creation)
+GET {{baseUrl}}/customers
+Accept: application/json
+
+### 19. Get Customer by Phone
+# Note: You may need to implement this endpoint or search manually
+
+### 20. Get Item Stocks
+GET {{baseUrl}}/items/item-stocks
+Accept: application/json
+
+### 21. Get All Categories
+GET {{baseUrl}}/common
+Accept: application/json
+
+### ==========================================
+### COMPLETE ORDER FLOW TEST
+### ==========================================
+
+### Step 1: Start conversation with "menu"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "contacts": [{
+          "profile": {
+            "name": "Complete Test User"
+          },
+          "wa_id": "255799999999"
+        }],
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_001",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "menu"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 2: Select "Search by Code"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_002",
+          "timestamp": "1697980800",
+          "type": "interactive",
+          "interactive": {
+            "type": "list_reply",
+            "list_reply": {
+              "id": "search_by_code",
+              "title": "Search by Code"
+            }
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 3: Enter product code
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_003",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "PROD-001"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 4: Enter quantity
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_004",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "1"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 5: Select "Checkout"
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_005",
+          "timestamp": "1697980800",
+          "type": "interactive",
+          "interactive": {
+            "type": "button_reply",
+            "button_reply": {
+              "id": "checkout",
+              "title": "Checkout"
+            }
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 6: Enter delivery address
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_006",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "Dar es Salaam, Kinondoni, House #123"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 7: Confirm order
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "255799999999",
+          "id": "wamid.flow_007",
+          "timestamp": "1697980800",
+          "type": "interactive",
+          "interactive": {
+            "type": "button_reply",
+            "button_reply": {
+              "id": "confirm_order",
+              "title": "Confirm"
+            }
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Step 8: Check orders for this user
+GET {{baseUrl}}/whatsapp/orders/phone/255799999999
+Accept: application/json
+
+### ==========================================
+### ERROR HANDLING TESTS
+### ==========================================
+
+### Test Invalid Product Code
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.error_001",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "INVALID999"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Test "cancel" command
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.error_002",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "cancel"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}
+
+### Test "help" command
+POST {{baseUrl}}/whatsapp/webhook
+Content-Type: application/json
+
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "id": "test_business_account",
+    "changes": [{
+      "value": {
+        "messaging_product": "whatsapp",
+        "metadata": {
+          "display_phone_number": "255700000000",
+          "phone_number_id": "test_phone_id"
+        },
+        "messages": [{
+          "from": "{{phone}}",
+          "id": "wamid.help_001",
+          "timestamp": "1697980800",
+          "type": "text",
+          "text": {
+            "body": "help"
+          }
+        }]
+      },
+      "field": "messages"
+    }]
+  }]
+}

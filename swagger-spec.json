@@ -2022,6 +2022,37 @@
         ]
       }
     },
+    "/sales/filter-by-dates": {
+      "get": {
+        "operationId": "SaleController_findSalesByDateRange",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sales"
+        ]
+      }
+    },
     "/sales/{id}": {
       "get": {
         "operationId": "SaleController_findOne",
@@ -2235,6 +2266,220 @@
           "Expense"
         ]
       }
+    },
+    "/expenses/filter-by-dates": {
+      "get": {
+        "operationId": "ExpenseController_findExpensesByDateRange",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/whatsapp/webhook": {
+      "get": {
+        "operationId": "WhatsAppController_verifyWebhook",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Webhook verified successfully"
+          },
+          "403": {
+            "description": "Invalid verification token"
+          }
+        },
+        "summary": "Verify WhatsApp webhook",
+        "tags": [
+          "WhatsApp"
+        ]
+      },
+      "post": {
+        "operationId": "WhatsAppController_receiveMessage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatsAppMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message processed successfully"
+          }
+        },
+        "summary": "Receive WhatsApp messages",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders": {
+      "get": {
+        "operationId": "WhatsAppController_getAllOrders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns all orders"
+          }
+        },
+        "summary": "Get all WhatsApp orders",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/{id}": {
+      "get": {
+        "operationId": "WhatsAppController_getOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the order"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        },
+        "summary": "Get order by ID",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/phone/{phone}": {
+      "get": {
+        "operationId": "WhatsAppController_getOrdersByPhone",
+        "parameters": [
+          {
+            "name": "phone",
+            "required": true,
+            "in": "path",
+            "description": "Customer phone number",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns customer orders"
+          }
+        },
+        "summary": "Get orders by customer phone number",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/{id}/status": {
+      "put": {
+        "operationId": "WhatsAppController_updateOrderStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order status updated"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        },
+        "summary": "Update order status",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/{id}/cancel": {
+      "put": {
+        "operationId": "WhatsAppController_cancelOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order cancelled successfully"
+          },
+          "400": {
+            "description": "Cannot cancel delivered order"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        },
+        "summary": "Cancel order",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/stats/orders": {
+      "get": {
+        "operationId": "WhatsAppController_getOrderStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns order statistics"
+          }
+        },
+        "summary": "Get order statistics",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
     }
   },
   "info": {
@@ -2432,6 +2677,10 @@
         }
       },
       "CreateExpenseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "WhatsAppMessageDto": {
         "type": "object",
         "properties": {}
       }

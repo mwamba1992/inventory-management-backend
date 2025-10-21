@@ -48,6 +48,13 @@ export class ItemService {
     item.name = createItemDto.name;
     item.desc = createItemDto.desc;
 
+    // Auto-generate product code if not provided
+    if (createItemDto.code) {
+      item.code = createItemDto.code;
+    } else {
+      item.code = await this.generateNextProductCode();
+    }
+
     if (createItemDto.categoryId) {
       item.category = await this.commonRepository.findOneByOrFail({
         id: createItemDto.categoryId,
@@ -336,5 +343,31 @@ export class ItemService {
       const sellingPrice = activePrice ? activePrice.sellingPrice : 0;
       return total + item.quantity * sellingPrice;
     }, 0);
+  }
+
+  /**
+   * Generates the next available product code in the format PROD-XXX
+   * @returns Promise<string> - Next available product code (e.g., PROD-001, PROD-002)
+   */
+  private async generateNextProductCode(): Promise<string> {
+    // Find the highest existing product code
+    const lastItem = await this.itemRepository
+      .createQueryBuilder('item')
+      .where("item.code LIKE 'PROD-%'")
+      .orderBy("item.code", 'DESC')
+      .getOne();
+
+    let nextNumber = 1;
+
+    if (lastItem && lastItem.code) {
+      // Extract the number from the last code (e.g., "PROD-005" -> 5)
+      const match = lastItem.code.match(/PROD-(\d+)/);
+      if (match && match[1]) {
+        nextNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    // Format as PROD-XXX with zero padding (3 digits)
+    return `PROD-${nextNumber.toString().padStart(3, '0')}`;
   }
 }

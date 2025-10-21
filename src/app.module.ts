@@ -31,6 +31,10 @@ import { SaleModule } from './sale/sale.module';
 import { Sale } from './sale/entities/sale.entity';
 import { ExpenseModule } from './expense/expense.module';
 import { Expense } from './expense/entities/expense.entity';
+import { WhatsAppModule } from './whatsapp/whatsapp.module';
+import { WhatsAppOrder } from './whatsapp/entities/whatsapp-order.entity';
+import { WhatsAppOrderItem } from './whatsapp/entities/whatsapp-order-item.entity';
+import { WhatsAppSession } from './whatsapp/entities/whatsapp-session.entity';
 
 @Module({
   imports: [
@@ -59,6 +63,9 @@ import { Expense } from './expense/entities/expense.entity';
         Customer,
         Sale,
         Expense,
+        WhatsAppOrder,
+        WhatsAppOrderItem,
+        WhatsAppSession,
       ],
       database: 'inventorydb',
       schema: 'core',
@@ -77,6 +84,7 @@ import { Expense } from './expense/entities/expense.entity';
     CustomerModule,
     SaleModule,
     ExpenseModule,
+    WhatsAppModule,
   ],
   controllers: [AppController],
   providers: [AppService],

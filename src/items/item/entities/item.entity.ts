@@ -23,6 +23,9 @@ export class Item extends BaseEntity {
   @Column()
   name: string;
 
+  @Column({ nullable: true, unique: true })
+  code: string;
+
   @Column({ nullable: true })
   desc: string;
 

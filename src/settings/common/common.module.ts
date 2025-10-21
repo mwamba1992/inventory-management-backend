@@ -8,5 +8,6 @@ import { Common } from './entities/common.entity';
   imports: [TypeOrmModule.forFeature([Common])],
   controllers: [CommonController],
   providers: [CommonService],
+  exports: [CommonService],
 })
 export class CommonModule {}

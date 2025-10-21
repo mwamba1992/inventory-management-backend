@@ -1,0 +1,43 @@
+import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { WhatsAppController } from './whatsapp.controller';
+import { WhatsAppApiService } from './services/whatsapp-api.service';
+import { SessionService } from './services/session.service';
+import { MessageHandlerService } from './services/message-handler.service';
+import { WhatsAppOrderService } from './services/whatsapp-order.service';
+import { WhatsAppOrder } from './entities/whatsapp-order.entity';
+import { WhatsAppOrderItem } from './entities/whatsapp-order-item.entity';
+import { WhatsAppSession } from './entities/whatsapp-session.entity';
+import { ItemModule } from '../items/item/item.module';
+import { CustomerModule } from '../settings/customer/customer.module';
+import { WarehouseModule } from '../settings/warehouse/warehouse.module';
+import { CommonModule } from '../settings/common/common.module';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      WhatsAppOrder,
+      WhatsAppOrderItem,
+      WhatsAppSession,
+    ]),
+    HttpModule,
+    ItemModule,
+    CustomerModule,
+    WarehouseModule,
+    CommonModule,
+  ],
+  controllers: [WhatsAppController],
+  providers: [
+    WhatsAppApiService,
+    SessionService,
+    MessageHandlerService,
+    WhatsAppOrderService,
+  ],
+  exports: [
+    WhatsAppApiService,
+    WhatsAppOrderService,
+    SessionService,
+  ],
+})
+export class WhatsAppModule {}
