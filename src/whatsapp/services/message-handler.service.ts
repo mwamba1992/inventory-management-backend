@@ -376,7 +376,7 @@ export class MessageHandlerService {
       quantity,
       unitPrice: activePrice?.sellingPrice || 0,
       totalPrice: (activePrice?.sellingPrice || 0) * quantity,
-      warehouseId: stock?.warehouse?.id || stock?.warehouseId || 1, // Use stock's warehouse
+      warehouseId: stock?.warehouse?.id || 1, // Use stock's warehouse
     };
 
     await this.sessionService.addToCart(phoneNumber, cartItem);
