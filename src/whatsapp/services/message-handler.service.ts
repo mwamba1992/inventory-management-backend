@@ -395,6 +395,9 @@ export class MessageHandlerService {
     const session = await this.sessionService.getOrCreateSession(phoneNumber);
     const itemId = session.context?.selectedItemId;
 
+
+    console.log("the selected item is: "+ itemId);
+
     if (!itemId) {
       await this.whatsappApi.sendTextMessage(
         phoneNumber,
@@ -407,6 +410,7 @@ export class MessageHandlerService {
     const activePrice = item.prices?.find((p) => p.isActive);
     const stock = item.stock?.[0];
 
+    console.log('##############################');
     console.log(stock);
     console.log(activePrice);
 

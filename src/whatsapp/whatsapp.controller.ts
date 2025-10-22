@@ -69,7 +69,7 @@ export class WhatsAppController {
   @ApiOperation({ summary: 'Receive WhatsApp messages' })
   @ApiResponse({ status: 200, description: 'Message processed successfully' })
   receiveMessage(@Body() payload: WhatsAppMessageDto) {
-    this.logger.debug(`Received webhook: ${JSON.stringify(payload)}`);
+    //this.logger.debug(`Received webhook: ${JSON.stringify(payload)}`);
 
     try {
       // Validate payload
