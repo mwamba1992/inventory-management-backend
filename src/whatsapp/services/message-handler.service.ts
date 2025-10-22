@@ -45,7 +45,10 @@ export class MessageHandlerService {
       // Route based on session state
       await this.routeMessage(phoneNumber, session.state, messageContent);
     } catch (error) {
-      this.logger.error(`Error handling message: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error handling message: ${error.message}`,
+        error.stack,
+      );
       await this.whatsappApi.sendTextMessage(
         phoneNumber,
         'Sorry, something went wrong. Please try again or type "menu" to return to main menu.',
@@ -130,7 +133,10 @@ export class MessageHandlerService {
   }
 
   async showMainMenu(phoneNumber: string): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.MAIN_MENU,
+    );
 
     await this.whatsappApi.sendListMessage(
       phoneNumber,
@@ -171,7 +177,10 @@ export class MessageHandlerService {
     );
   }
 
-  private async handleMainMenu(phoneNumber: string, choice: string): Promise<void> {
+  private async handleMainMenu(
+    phoneNumber: string,
+    choice: string,
+  ): Promise<void> {
     switch (choice) {
       case 'browse_categories':
         await this.showCategories(phoneNumber);
@@ -203,7 +212,10 @@ export class MessageHandlerService {
   }
 
   private async showCategories(phoneNumber: string): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.BROWSING_CATEGORIES);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.BROWSING_CATEGORIES,
+    );
 
     // Get categories from Common entity where type = 'ITEM_CATEGORY'
     const categories = await this.commonService.findAll();
@@ -239,27 +251,42 @@ export class MessageHandlerService {
     );
   }
 
-  private async handleCategorySelection(phoneNumber: string, choice: string): Promise<void> {
+  private async handleCategorySelection(
+    phoneNumber: string,
+    choice: string,
+  ): Promise<void> {
     if (choice === 'back_to_menu') {
       return this.showMainMenu(phoneNumber);
     }
 
     const categoryId = parseInt(choice.replace('cat_', ''));
     if (isNaN(categoryId)) {
-      await this.whatsappApi.sendTextMessage(phoneNumber, 'Invalid category selection.');
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        'Invalid category selection.',
+      );
       return this.showCategories(phoneNumber);
     }
 
     await this.showItemsInCategory(phoneNumber, categoryId);
   }
 
-  private async showItemsInCategory(phoneNumber: string, categoryId: number): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.VIEWING_ITEMS, {
-      selectedCategoryId: categoryId,
-    });
+  private async showItemsInCategory(
+    phoneNumber: string,
+    categoryId: number,
+  ): Promise<void> {
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.VIEWING_ITEMS,
+      {
+        selectedCategoryId: categoryId,
+      },
+    );
 
     const items = await this.itemService.findAll();
-    const categoryItems = items.filter((item) => item.category?.id === categoryId);
+    const categoryItems = items.filter(
+      (item) => item.category?.id === categoryId,
+    );
 
     if (categoryItems.length === 0) {
       await this.whatsappApi.sendTextMessage(
@@ -298,21 +325,30 @@ export class MessageHandlerService {
     );
   }
 
-  private async handleItemSelection(phoneNumber: string, choice: string): Promise<void> {
+  private async handleItemSelection(
+    phoneNumber: string,
+    choice: string,
+  ): Promise<void> {
     if (choice === 'back_to_categories') {
       return this.showCategories(phoneNumber);
     }
 
     const itemId = parseInt(choice.replace('item_', ''));
     if (isNaN(itemId)) {
-      await this.whatsappApi.sendTextMessage(phoneNumber, 'Invalid item selection.');
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        'Invalid item selection.',
+      );
       return;
     }
 
     await this.requestQuantity(phoneNumber, itemId);
   }
 
-  private async requestQuantity(phoneNumber: string, itemId: number): Promise<void> {
+  private async requestQuantity(
+    phoneNumber: string,
+    itemId: number,
+  ): Promise<void> {
     const item = await this.itemService.findOne(itemId);
     if (!item) {
       await this.whatsappApi.sendTextMessage(phoneNumber, 'Item not found.');
@@ -322,9 +358,13 @@ export class MessageHandlerService {
     const activePrice = item.prices?.find((p) => p.isActive);
     const stock = item.stock?.[0];
 
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.ADDING_TO_CART, {
-      selectedItemId: itemId,
-    });
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.ADDING_TO_CART,
+      {
+        selectedItemId: itemId,
+      },
+    );
 
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
@@ -335,7 +375,10 @@ export class MessageHandlerService {
     );
   }
 
-  private async handleAddToCart(phoneNumber: string, content: string): Promise<void> {
+  private async handleAddToCart(
+    phoneNumber: string,
+    content: string,
+  ): Promise<void> {
     if (content.toLowerCase() === 'cancel') {
       return this.showMainMenu(phoneNumber);
     }
@@ -353,13 +396,19 @@ export class MessageHandlerService {
     const itemId = session.context?.selectedItemId;
 
     if (!itemId) {
-      await this.whatsappApi.sendTextMessage(phoneNumber, 'Session expired. Please start again.');
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        'Session expired. Please start again.',
+      );
       return this.showMainMenu(phoneNumber);
     }
 
     const item = await this.itemService.findOne(itemId);
     const activePrice = item.prices?.find((p) => p.isActive);
     const stock = item.stock?.[0];
+
+    console.log(stock);
+    console.log(activePrice);
 
     // Check stock availability
     if (!stock || stock.quantity < quantity) {
@@ -392,18 +441,27 @@ export class MessageHandlerService {
       ],
     );
 
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.MAIN_MENU,
+    );
   }
 
   private async initiateSearch(phoneNumber: string): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.SEARCHING);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.SEARCHING,
+    );
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
       '🔍 Search for products\n\nPlease enter the product name you are looking for (or type "cancel" to go back):',
     );
   }
 
-  private async handleSearch(phoneNumber: string, query: string): Promise<void> {
+  private async handleSearch(
+    phoneNumber: string,
+    query: string,
+  ): Promise<void> {
     if (query.toLowerCase() === 'cancel') {
       return this.showMainMenu(phoneNumber);
     }
@@ -421,9 +479,13 @@ export class MessageHandlerService {
       return;
     }
 
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.VIEWING_ITEMS, {
-      searchQuery: query,
-    });
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.VIEWING_ITEMS,
+      {
+        searchQuery: query,
+      },
+    );
 
     const rows = searchResults.slice(0, 10).map((item) => {
       const activePrice = item.prices?.find((p) => p.isActive);
@@ -453,21 +515,27 @@ export class MessageHandlerService {
   }
 
   private async initiateCodeSearch(phoneNumber: string): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.SEARCHING_BY_CODE);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.SEARCHING_BY_CODE,
+    );
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
       '🔢 Search by Product Code\n\nPlease enter the product code (or type "cancel" to go back):',
     );
   }
 
-  private async handleCodeSearch(phoneNumber: string, code: string): Promise<void> {
+  private async handleCodeSearch(
+    phoneNumber: string,
+    code: string,
+  ): Promise<void> {
     if (code.toLowerCase() === 'cancel') {
       return this.showMainMenu(phoneNumber);
     }
 
     const allItems = await this.itemService.findAll();
-    const item = allItems.find((item) =>
-      item.code && item.code.toLowerCase() === code.toLowerCase()
+    const item = allItems.find(
+      (item) => item.code && item.code.toLowerCase() === code.toLowerCase(),
     );
 
     if (!item) {
@@ -482,9 +550,13 @@ export class MessageHandlerService {
     const activePrice = item.prices?.find((p) => p.isActive);
     const stock = item.stock?.[0];
 
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.ADDING_TO_CART, {
-      selectedItemId: item.id,
-    });
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.ADDING_TO_CART,
+      {
+        selectedItemId: item.id,
+      },
+    );
 
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
@@ -510,7 +582,10 @@ export class MessageHandlerService {
           { id: 'search_products', title: '🔍 Search' },
         ],
       );
-      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+      await this.sessionService.updateSessionState(
+        phoneNumber,
+        SessionState.MAIN_MENU,
+      );
       return;
     }
 
@@ -526,7 +601,10 @@ export class MessageHandlerService {
     cartMessage += `━━━━━━━━━━━━━━━━\n`;
     cartMessage += `💰 Total: TZS ${total.toFixed(2)}`;
 
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.CART_REVIEW);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.CART_REVIEW,
+    );
 
     await this.whatsappApi.sendButtonMessage(phoneNumber, cartMessage, [
       { id: 'checkout', title: '✔️ Checkout' },
@@ -535,7 +613,10 @@ export class MessageHandlerService {
     ]);
   }
 
-  private async handleCartReview(phoneNumber: string, choice: string): Promise<void> {
+  private async handleCartReview(
+    phoneNumber: string,
+    choice: string,
+  ): Promise<void> {
     switch (choice) {
       case 'checkout':
         await this.initiateCheckout(phoneNumber);
@@ -543,7 +624,10 @@ export class MessageHandlerService {
 
       case 'clear_cart':
         await this.sessionService.clearCart(phoneNumber);
-        await this.whatsappApi.sendTextMessage(phoneNumber, '🗑️ Cart cleared successfully!');
+        await this.whatsappApi.sendTextMessage(
+          phoneNumber,
+          '🗑️ Cart cleared successfully!',
+        );
         await this.showMainMenu(phoneNumber);
         break;
 
@@ -558,18 +642,27 @@ export class MessageHandlerService {
   }
 
   private async initiateCheckout(phoneNumber: string): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.ENTERING_ADDRESS);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.ENTERING_ADDRESS,
+    );
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
       '📍 Please enter your delivery address:\n\n(Or type "skip" to use phone number as reference)',
     );
   }
 
-  private async handleAddressEntry(phoneNumber: string, address: string): Promise<void> {
+  private async handleAddressEntry(
+    phoneNumber: string,
+    address: string,
+  ): Promise<void> {
     const deliveryAddress = address.toLowerCase() === 'skip' ? '' : address;
 
     await this.sessionService.updateContext(phoneNumber, { deliveryAddress });
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.CONFIRMING_ORDER);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.CONFIRMING_ORDER,
+    );
 
     const cart = await this.sessionService.getCart(phoneNumber);
     let total = 0;
@@ -594,7 +687,10 @@ export class MessageHandlerService {
     ]);
   }
 
-  private async handleOrderConfirmation(phoneNumber: string, choice: string): Promise<void> {
+  private async handleOrderConfirmation(
+    phoneNumber: string,
+    choice: string,
+  ): Promise<void> {
     if (choice === 'cancel_order') {
       await this.whatsappApi.sendTextMessage(phoneNumber, 'Order cancelled.');
       return this.showMainMenu(phoneNumber);
@@ -602,11 +698,15 @@ export class MessageHandlerService {
 
     if (choice === 'confirm_order') {
       const session = await this.sessionService.getOrCreateSession(phoneNumber);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const cart = session.context?.cart || [];
       const deliveryAddress = session.context?.deliveryAddress || '';
 
       if (cart.length === 0) {
-        await this.whatsappApi.sendTextMessage(phoneNumber, 'Your cart is empty.');
+        await this.whatsappApi.sendTextMessage(
+          phoneNumber,
+          'Your cart is empty.',
+        );
         return this.showMainMenu(phoneNumber);
       }
 
@@ -636,7 +736,10 @@ export class MessageHandlerService {
             `Type "track" to track your order or "menu" for main menu.`,
         );
 
-        await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+        await this.sessionService.updateSessionState(
+          phoneNumber,
+          SessionState.MAIN_MENU,
+        );
       } catch (error) {
         this.logger.error('Error creating order:', error);
         await this.whatsappApi.sendTextMessage(
@@ -649,7 +752,10 @@ export class MessageHandlerService {
   }
 
   private async showOrderTracking(phoneNumber: string): Promise<void> {
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.TRACKING_ORDER);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.TRACKING_ORDER,
+    );
 
     const orders = await this.orderService.findByPhone(phoneNumber);
 
@@ -658,7 +764,10 @@ export class MessageHandlerService {
         phoneNumber,
         '📦 No orders found.\n\nType "menu" to return to main menu.',
       );
-      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+      await this.sessionService.updateSessionState(
+        phoneNumber,
+        SessionState.MAIN_MENU,
+      );
       return;
     }
 
@@ -684,7 +793,10 @@ export class MessageHandlerService {
     );
   }
 
-  private async handleOrderTracking(phoneNumber: string, choice: string): Promise<void> {
+  private async handleOrderTracking(
+    phoneNumber: string,
+    choice: string,
+  ): Promise<void> {
     if (choice === 'back_to_menu') {
       return this.showMainMenu(phoneNumber);
     }
@@ -723,7 +835,10 @@ export class MessageHandlerService {
       { id: 'back_to_menu', title: '⬅️ Main Menu' },
     ]);
 
-    await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.MAIN_MENU,
+    );
   }
 
   private async showHelp(phoneNumber: string): Promise<void> {
@@ -738,7 +853,10 @@ export class MessageHandlerService {
     await this.whatsappApi.sendTextMessage(phoneNumber, helpMessage);
   }
 
-  private async ensureCustomerExists(phoneNumber: string, name?: string): Promise<void> {
+  private async ensureCustomerExists(
+    phoneNumber: string,
+    name?: string,
+  ): Promise<void> {
     try {
       const customers = await this.customerService.findAll();
       const existingCustomer = customers.find((c) => c.phone === phoneNumber);
