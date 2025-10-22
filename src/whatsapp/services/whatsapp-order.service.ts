@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { WhatsAppOrder, OrderStatus } from '../entities/whatsapp-order.entity';
 import { WhatsAppOrderItem } from '../entities/whatsapp-order-item.entity';
 import { CreateWhatsAppOrderDto } from '../dto/create-order.dto';
@@ -182,10 +182,7 @@ export class WhatsAppOrderService {
 
     const todayOrdersCount = await this.orderRepository.count({
       where: {
-        createdAt: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        } as any,
+        createdAt: Between(startOfDay, endOfDay),
       },
     });
 
