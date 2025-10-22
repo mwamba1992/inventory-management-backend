@@ -8,6 +8,7 @@ import { WhatsAppOrderItem } from '../whatsapp/entities/whatsapp-order-item.enti
 import { Customer } from '../settings/customer/entities/customer.entity';
 import { Item } from '../items/item/entities/item.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
+import { Expense } from '../expense/entities/expense.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { AuthModule } from '../auth/auth.module';
       Customer,
       Item,
       ItemStock,
+      Expense,
     ]),
     AuthModule,
   ],

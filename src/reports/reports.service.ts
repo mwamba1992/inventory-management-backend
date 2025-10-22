@@ -7,6 +7,7 @@ import { Customer } from '../settings/customer/entities/customer.entity';
 import { Item } from '../items/item/entities/item.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
 import { WhatsAppOrderItem } from '../whatsapp/entities/whatsapp-order-item.entity';
+import { Expense } from '../expense/entities/expense.entity';
 import {
   BusinessOverviewReport,
   MetricValue,
@@ -15,6 +16,7 @@ import {
   SalesReport,
   InventoryReport,
   CustomerReport,
+  FinancialReport,
 } from './interfaces/report.interface';
 import { DateRange, ReportFilterDto } from './dto/report-filter.dto';
 
@@ -33,6 +35,8 @@ export class ReportsService {
     private readonly itemStockRepository: Repository<ItemStock>,
     @InjectRepository(WhatsAppOrderItem)
     private readonly whatsappOrderItemRepository: Repository<WhatsAppOrderItem>,
+    @InjectRepository(Expense)
+    private readonly expenseRepository: Repository<Expense>,
   ) {}
 
   /**
@@ -590,14 +594,16 @@ export class ReportsService {
       filter.businessId,
     );
 
-    // Get top customers by total spent
+    // Get top customers by total spent (with phone and last order)
     const topCustomersFromSales = await this.saleRepository
       .createQueryBuilder('sale')
       .leftJoin('sale.customer', 'customer')
       .select('customer.id', 'id')
       .addSelect('customer.name', 'name')
+      .addSelect('customer.phone', 'phone')
       .addSelect('COUNT(sale.id)', 'totalOrders')
       .addSelect('COALESCE(SUM(sale.amountPaid), 0)', 'totalSpent')
+      .addSelect('MAX(sale.createdAt)', 'lastOrder')
       .where('sale.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
@@ -605,6 +611,7 @@ export class ReportsService {
       .andWhere('customer.id IS NOT NULL')
       .groupBy('customer.id')
       .addGroupBy('customer.name')
+      .addGroupBy('customer.phone')
       .getRawMany();
 
     const topCustomersFromWhatsApp = await this.whatsappOrderRepository
@@ -612,8 +619,10 @@ export class ReportsService {
       .leftJoin('wo.customer', 'customer')
       .select('customer.id', 'id')
       .addSelect('customer.name', 'name')
+      .addSelect('customer.phone', 'phone')
       .addSelect('COUNT(wo.id)', 'totalOrders')
       .addSelect('COALESCE(SUM(wo.totalAmount), 0)', 'totalSpent')
+      .addSelect('MAX(wo.createdAt)', 'lastOrder')
       .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
@@ -622,12 +631,20 @@ export class ReportsService {
       .andWhere('wo.status != :status', { status: 'cancelled' })
       .groupBy('customer.id')
       .addGroupBy('customer.name')
+      .addGroupBy('customer.phone')
       .getRawMany();
 
     // Merge top customers
     const customerMap = new Map<
       number,
-      { id: number; name: string; totalOrders: number; totalSpent: number }
+      {
+        id: number;
+        name: string;
+        phone: string;
+        totalOrders: number;
+        totalSpent: number;
+        lastOrder: Date;
+      }
     >();
 
     [...topCustomersFromSales, ...topCustomersFromWhatsApp].forEach((item) => {
@@ -635,25 +652,253 @@ export class ReportsService {
       if (existing) {
         existing.totalOrders += Number(item.totalOrders);
         existing.totalSpent += Number(item.totalSpent);
+        // Keep the most recent lastOrder
+        if (new Date(item.lastOrder) > existing.lastOrder) {
+          existing.lastOrder = new Date(item.lastOrder);
+        }
       } else {
         customerMap.set(item.id, {
           id: item.id,
           name: item.name,
+          phone: item.phone || '',
           totalOrders: Number(item.totalOrders),
           totalSpent: Number(item.totalSpent),
+          lastOrder: new Date(item.lastOrder),
         });
       }
     });
 
+    // Calculate returning customers (customers who ordered in this period and also before)
+    const customersInPeriod = Array.from(customerMap.keys());
+    let returningCustomers = 0;
+
+    if (customersInPeriod.length > 0) {
+      // Check how many of these customers had orders before the current period
+      const salesBeforePeriod = await this.saleRepository
+        .createQueryBuilder('sale')
+        .select('DISTINCT sale.customer.id', 'customerId')
+        .where('sale.createdAt < :startDate', { startDate })
+        .andWhere('sale.customer.id IN (:...customerIds)', {
+          customerIds: customersInPeriod,
+        })
+        .getRawMany();
+
+      const whatsappBeforePeriod = await this.whatsappOrderRepository
+        .createQueryBuilder('wo')
+        .select('DISTINCT wo.customer.id', 'customerId')
+        .where('wo.createdAt < :startDate', { startDate })
+        .andWhere('wo.customer.id IN (:...customerIds)', {
+          customerIds: customersInPeriod,
+        })
+        .andWhere('wo.status != :status', { status: 'cancelled' })
+        .getRawMany();
+
+      const returningCustomerIds = new Set([
+        ...salesBeforePeriod.map((r) => r.customerId),
+        ...whatsappBeforePeriod.map((r) => r.customerId),
+      ]);
+
+      returningCustomers = returningCustomerIds.size;
+    }
+
+    // Calculate customer lifetime value (total revenue / customers with orders)
+    const totalRevenue = await this.getTotalRevenue(
+      startDate,
+      endDate,
+      filter.businessId,
+    );
+    const customersWithOrders = customersInPeriod.length;
+    const customerLifetimeValue =
+      customersWithOrders > 0 ? totalRevenue / customersWithOrders : 0;
+
+    // Calculate return rate
+    const returnRate =
+      activeCustomers > 0
+        ? Math.round((returningCustomers / activeCustomers) * 100 * 10) / 10
+        : 0;
+
+    // Determine status and format topCustomers
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
     const topCustomers = Array.from(customerMap.values())
       .sort((a, b) => b.totalSpent - a.totalSpent)
-      .slice(0, 10);
+      .slice(0, 10)
+      .map((customer) => ({
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        totalOrders: customer.totalOrders,
+        totalSpent: customer.totalSpent,
+        lastOrder: customer.lastOrder.toISOString(),
+        status: customer.lastOrder >= thirtyDaysAgo ? 'Active' : 'Inactive',
+      }));
 
     return {
       totalCustomers,
       newCustomers,
       activeCustomers,
+      returningCustomers,
+      returnRate,
+      customerLifetimeValue: Math.round(customerLifetimeValue),
       topCustomers,
     };
+  }
+
+  /**
+   * Get financial report
+   */
+  async getFinancialReport(
+    filter: ReportFilterDto,
+  ): Promise<FinancialReport> {
+    const { startDate, endDate, previousStartDate, previousEndDate } =
+      this.getDateRange(filter);
+
+    // Get total revenue for current period
+    const currentRevenue = await this.getTotalRevenue(
+      startDate,
+      endDate,
+      filter.businessId,
+    );
+
+    // Get total revenue for previous period
+    const previousRevenue = await this.getTotalRevenue(
+      previousStartDate,
+      previousEndDate,
+      filter.businessId,
+    );
+
+    // Get total expenses for current period
+    const currentExpenses = await this.getTotalExpenses(startDate, endDate);
+
+    // Get total expenses for previous period
+    const previousExpenses = await this.getTotalExpenses(
+      previousStartDate,
+      previousEndDate,
+    );
+
+    // Calculate net profit
+    const currentNetProfit = currentRevenue - currentExpenses;
+    const previousNetProfit = previousRevenue - previousExpenses;
+
+    // Calculate profit margin
+    const currentProfitMargin =
+      currentRevenue > 0 ? (currentNetProfit / currentRevenue) * 100 : 0;
+    const previousProfitMargin =
+      previousRevenue > 0 ? (previousNetProfit / previousRevenue) * 100 : 0;
+
+    // Get expense breakdown by category
+    const expenseBreakdown = await this.getExpenseBreakdown(
+      startDate,
+      endDate,
+      currentExpenses,
+    );
+
+    // Calculate percentage changes
+    const revenueChange =
+      previousRevenue > 0
+        ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+        : 0;
+
+    const expenseChange =
+      previousExpenses > 0
+        ? ((currentExpenses - previousExpenses) / previousExpenses) * 100
+        : 0;
+
+    const profitChange =
+      previousNetProfit !== 0
+        ? ((currentNetProfit - previousNetProfit) / Math.abs(previousNetProfit)) *
+          100
+        : 0;
+
+    const marginChange = currentProfitMargin - previousProfitMargin;
+
+    // Get period label
+    const periodLabel = this.getPeriodLabel(filter.dateRange || DateRange.LAST_30_DAYS);
+
+    return {
+      totalRevenue: {
+        current: Math.round(currentRevenue),
+        previous: Math.round(previousRevenue),
+        percentageChange: Math.round(revenueChange * 10) / 10,
+        label: 'Total Revenue',
+        period: periodLabel,
+      },
+      totalExpenses: {
+        current: Math.round(currentExpenses),
+        previous: Math.round(previousExpenses),
+        percentageChange: Math.round(expenseChange * 10) / 10,
+        label: 'Total Expenses',
+        period: periodLabel,
+      },
+      netProfit: {
+        current: Math.round(currentNetProfit),
+        previous: Math.round(previousNetProfit),
+        percentageChange: Math.round(profitChange * 10) / 10,
+        label: 'Net Profit',
+        period: periodLabel,
+      },
+      profitMargin: {
+        current: Math.round(currentProfitMargin * 10) / 10,
+        previous: Math.round(previousProfitMargin * 10) / 10,
+        percentageChange: Math.round(marginChange * 10) / 10,
+        label: 'Profit Margin',
+        period: periodLabel,
+      },
+      expenseBreakdown,
+      dateRange: {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Get total expenses for a date range
+   */
+  private async getTotalExpenses(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const result = await this.expenseRepository
+      .createQueryBuilder('expense')
+      .select('COALESCE(SUM(expense.amount), 0)', 'total')
+      .where('expense.expenseDate BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getRawOne();
+
+    return Number(result?.total || 0);
+  }
+
+  /**
+   * Get expense breakdown by category
+   */
+  private async getExpenseBreakdown(
+    startDate: Date,
+    endDate: Date,
+    totalExpenses: number,
+  ): Promise<Array<{ category: string; amount: number; percentage: number }>> {
+    const expenses = await this.expenseRepository
+      .createQueryBuilder('expense')
+      .select('expense.category', 'category')
+      .addSelect('COALESCE(SUM(expense.amount), 0)', 'amount')
+      .where('expense.expenseDate BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .groupBy('expense.category')
+      .orderBy('amount', 'DESC')
+      .getRawMany();
+
+    return expenses.map((expense) => ({
+      category: expense.category,
+      amount: Math.round(Number(expense.amount)),
+      percentage:
+        totalExpenses > 0
+          ? Math.round((Number(expense.amount) / totalExpenses) * 1000) / 10
+          : 0,
+    }));
   }
 }

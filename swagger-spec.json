@@ -2522,6 +2522,20 @@
           "Reports"
         ]
       }
+    },
+    "/reports/financial": {
+      "get": {
+        "operationId": "ReportsController_getFinancialReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
     }
   },
   "info": {

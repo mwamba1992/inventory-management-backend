@@ -5,6 +5,7 @@ import {
   BusinessOverviewReport,
   CustomerReport,
   InventoryReport,
+  FinancialReport,
 } from './interfaces/report.interface';
 
 @Controller('reports')
@@ -42,5 +43,16 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
   ): Promise<CustomerReport> {
     return this.reportsService.getCustomerReport(filter);
+  }
+
+  /**
+   * Get financial report
+   * GET /reports/financial?dateRange=last_30_days
+   */
+  @Get('financial')
+  async getFinancialReport(
+    @Query() filter: ReportFilterDto,
+  ): Promise<FinancialReport> {
+    return this.reportsService.getFinancialReport(filter);
   }
 }

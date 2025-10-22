@@ -68,10 +68,32 @@ export interface CustomerReport {
   totalCustomers: number;
   newCustomers: number;
   activeCustomers: number;
+  returningCustomers: number;
+  returnRate: number;
+  customerLifetimeValue: number;
   topCustomers: Array<{
     id: number;
     name: string;
+    phone: string;
     totalOrders: number;
     totalSpent: number;
+    lastOrder: string;
+    status: string;
   }>;
+}
+
+export interface FinancialReport {
+  totalRevenue: MetricValue;
+  totalExpenses: MetricValue;
+  netProfit: MetricValue;
+  profitMargin: MetricValue;
+  expenseBreakdown: Array<{
+    category: string;
+    amount: number;
+    percentage: number;
+  }>;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
 }
