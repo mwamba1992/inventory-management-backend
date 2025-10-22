@@ -52,7 +52,7 @@ export class WhatsAppOrderService {
       }
 
       // Check stock
-      const itemStock = item.stock?.find((s) => s.warehouse?.id === dto.warehouseId);
+      const itemStock = item.stock?.[0];
       if (!itemStock || itemStock.quantity < itemDto.quantity) {
         throw new BadRequestException(
           `Insufficient stock for ${item.name}. Available: ${itemStock?.quantity || 0}, Requested: ${itemDto.quantity}`,
