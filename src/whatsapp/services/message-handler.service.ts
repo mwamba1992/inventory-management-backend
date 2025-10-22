@@ -229,7 +229,8 @@ export class MessageHandlerService {
       return;
     }
 
-    const rows = itemCategories.map((cat) => ({
+    // Limit to 9 categories to leave room for back button (WhatsApp limit is 10 rows)
+    const rows = itemCategories.slice(0, 9).map((cat) => ({
       id: `cat_${cat.id}`,
       title: cat.description.substring(0, 24),
       description: cat.code,
@@ -297,8 +298,8 @@ export class MessageHandlerService {
     }
 
     const rows: Array<{ id: string; title: string; description?: string }> = [];
-    for (const item of categoryItems.slice(0, 10)) {
-      // Limit to 10 items
+    // Limit to 9 items to leave room for back button (WhatsApp limit is 10 rows)
+    for (const item of categoryItems.slice(0, 9)) {
       const activePrice = item.prices?.find((p) => p.isActive);
       const stock = item.stock?.[0];
       const stockInfo = stock ? `Stock: ${stock.quantity}` : 'Out of stock';
@@ -491,7 +492,8 @@ export class MessageHandlerService {
       },
     );
 
-    const rows = searchResults.slice(0, 10).map((item) => {
+    // Limit to 9 items to leave room for back button (WhatsApp limit is 10 rows)
+    const rows = searchResults.slice(0, 9).map((item) => {
       const activePrice = item.prices?.find((p) => p.isActive);
       const stock = item.stock?.[0];
       const stockInfo = stock ? `Stock: ${stock.quantity}` : 'Out of stock';
