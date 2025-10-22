@@ -376,6 +376,7 @@ export class MessageHandlerService {
       quantity,
       unitPrice: activePrice?.sellingPrice || 0,
       totalPrice: (activePrice?.sellingPrice || 0) * quantity,
+      warehouseId: stock?.warehouse?.id || stock?.warehouseId || 1, // Use stock's warehouse
     };
 
     await this.sessionService.addToCart(phoneNumber, cartItem);
@@ -610,10 +611,11 @@ export class MessageHandlerService {
       }
 
       try {
-        // Create order
+        // Create order - use warehouse from first cart item
+        const warehouseId = cart[0]?.warehouseId || 1;
         const order = await this.orderService.createOrder({
           customerPhone: phoneNumber,
-          warehouseId: 1, // Default warehouse - should be configurable
+          warehouseId,
           items: cart.map((item) => ({
             itemId: item.itemId,
             quantity: item.quantity,

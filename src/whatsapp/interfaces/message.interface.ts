@@ -68,6 +68,7 @@ export interface CartItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  warehouseId: number;
 }
 
 export interface SessionContext {
