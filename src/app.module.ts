@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ItemModule } from './items/item/item.module';
@@ -39,13 +40,18 @@ import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
+    // Load environment variables
+    ConfigModule.forRoot({
+      isGlobal: true, // Make ConfigService available globally
+      envFilePath: '.env',
+    }),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: '84.247.178.93',
-      port: 5432,
-      password: 'amtz',
-      username: 'amtz',
+      host: process.env.DB_HOST || '84.247.178.93',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      password: process.env.DB_PASSWORD || 'amtz',
+      username: process.env.DB_USERNAME || 'amtz',
       entities: [
         Account,
         Item,
@@ -68,8 +74,8 @@ import { ReportsModule } from './reports/reports.module';
         WhatsAppOrderItem,
         WhatsAppSession,
       ],
-      database: 'inventorydb',
-      schema: 'core',
+      database: process.env.DB_DATABASE || 'inventorydb',
+      schema: process.env.DB_SCHEMA || 'core',
       synchronize: true,
       logging: false,
     }),

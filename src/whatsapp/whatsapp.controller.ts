@@ -10,13 +10,7 @@ import {
   Param,
   Put,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { MessageHandlerService } from './services/message-handler.service';
 import { WhatsAppOrderService } from './services/whatsapp-order.service';
 import { WhatsAppMessageDto, WebhookVerificationDto } from './dto/webhook.dto';
