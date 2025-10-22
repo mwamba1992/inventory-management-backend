@@ -1,5 +1,22 @@
-import { Controller, Post, Get, Body, Query, HttpCode, HttpStatus, Logger, Param, Put } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Put,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { MessageHandlerService } from './services/message-handler.service';
 import { WhatsAppOrderService } from './services/whatsapp-order.service';
 import { WhatsAppMessageDto, WebhookVerificationDto } from './dto/webhook.dto';
@@ -23,12 +40,18 @@ export class WhatsAppController {
   @ApiOperation({ summary: 'Verify WhatsApp webhook' })
   @ApiResponse({ status: 200, description: 'Webhook verified successfully' })
   @ApiResponse({ status: 403, description: 'Invalid verification token' })
-  async verifyWebhook(@Query() query: WebhookVerificationDto) {
+  verifyWebhook(@Query() query: WebhookVerificationDto) {
     const mode = query['hub.mode'];
     const token = query['hub.verify_token'];
     const challenge = query['hub.challenge'];
 
-    const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'your_verify_token_here';
+    console.log('mode' + mode);
+    console.log('token ' + token);
+
+    const VERIFY_TOKEN =
+      process.env.WHATSAPP_VERIFY_TOKEN || 'your_verify_token_here';
+
+    console.log(VERIFY_TOKEN);
 
     if (mode && token) {
       if (mode === 'subscribe' && token === VERIFY_TOKEN) {
@@ -51,7 +74,7 @@ export class WhatsAppController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Receive WhatsApp messages' })
   @ApiResponse({ status: 200, description: 'Message processed successfully' })
-  async receiveMessage(@Body() payload: WhatsAppMessageDto) {
+  receiveMessage(@Body() payload: WhatsAppMessageDto) {
     this.logger.debug(`Received webhook: ${JSON.stringify(payload)}`);
 
     try {
