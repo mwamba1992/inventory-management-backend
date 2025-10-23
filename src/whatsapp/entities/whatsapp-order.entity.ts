@@ -61,4 +61,13 @@ export class WhatsAppOrder {
 
   @Column({ name: 'delivered_at', type: 'timestamp', nullable: true })
   deliveredAt: Date;
+
+  @Column({ type: 'int', nullable: true })
+  rating: number | null; // 1-5 stars
+
+  @Column({ type: 'text', nullable: true })
+  feedback: string | null;
+
+  @Column({ name: 'rated_at', type: 'timestamp', nullable: true })
+  ratedAt: Date | null;
 }

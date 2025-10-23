@@ -91,4 +91,12 @@ export interface SessionContext {
   deliveryAddress?: string;
   currentPage?: number;
   pendingOrderId?: number;
+  // Rating & Feedback
+  unratedOrders?: number[];
+  selectedOrderForRating?: number;
+  orderId?: number;
+  rating?: number;
+  // Quick Reorder
+  orderHistory?: number[];
+  reorderFromId?: number;
 }

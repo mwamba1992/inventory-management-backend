@@ -11,6 +11,10 @@ export enum SessionState {
   ENTERING_ADDRESS = 'entering_address',
   CONFIRMING_ORDER = 'confirming_order',
   TRACKING_ORDER = 'tracking_order',
+  RATING_ORDER = 'rating_order',
+  PROVIDING_FEEDBACK = 'providing_feedback',
+  VIEWING_ORDER_HISTORY = 'viewing_order_history',
+  SELECTING_REORDER = 'selecting_reorder',
 }
 
 @Entity('whatsapp_sessions')

@@ -136,6 +136,22 @@ export class MessageHandlerService {
         await this.handleOrderTracking(phoneNumber, content);
         break;
 
+      case SessionState.RATING_ORDER:
+        await this.handleRatingSelection(phoneNumber, content);
+        break;
+
+      case SessionState.PROVIDING_FEEDBACK:
+        await this.handleFeedbackInput(phoneNumber, content);
+        break;
+
+      case SessionState.VIEWING_ORDER_HISTORY:
+        await this.handleReorderSelection(phoneNumber, content);
+        break;
+
+      case SessionState.SELECTING_REORDER:
+        await this.handleReorderConfirmation(phoneNumber, content);
+        break;
+
       default:
         await this.showMainMenu(phoneNumber);
     }
@@ -179,6 +195,16 @@ export class MessageHandlerService {
               title: '📦 Track Order',
               description: 'Check your order status',
             },
+            {
+              id: 'rate_order',
+              title: '⭐ Rate Order',
+              description: 'Rate your delivered orders',
+            },
+            {
+              id: 'quick_reorder',
+              title: '🔄 Quick Reorder',
+              description: 'Reorder from your history',
+            },
           ],
         },
       ],
@@ -209,6 +235,14 @@ export class MessageHandlerService {
 
       case 'track_order':
         await this.showOrderTracking(phoneNumber);
+        break;
+
+      case 'rate_order':
+        await this.showOrdersForRating(phoneNumber);
+        break;
+
+      case 'quick_reorder':
+        await this.showOrderHistory(phoneNumber);
         break;
 
       case 'checkout':
@@ -1038,6 +1072,334 @@ export class MessageHandlerService {
       }
     } catch (error) {
       this.logger.warn(`Failed to create customer: ${error.message}`);
+    }
+  }
+
+  // ========== RATING & FEEDBACK FLOW ==========
+
+  private async showOrdersForRating(phoneNumber: string): Promise<void> {
+    this.logger.log(`Showing orders for rating to ${phoneNumber}`);
+
+    const unratedOrders = await this.orderService.getDeliveredOrdersForRating(phoneNumber);
+
+    if (unratedOrders.length === 0) {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        '🎉 Great news! You have no pending orders to rate.\n\nAll your delivered orders have been rated. Thank you for your feedback!',
+      );
+      return this.showMainMenu(phoneNumber);
+    }
+
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.RATING_ORDER,
+      { unratedOrders: unratedOrders.map((o) => o.id) },
+    );
+
+    let message = '⭐ *Rate Your Orders*\n\n';
+    message += 'Please select an order to rate:\n\n';
+
+    unratedOrders.forEach((order, index) => {
+      const orderDate = new Date(order.deliveredAt).toLocaleDateString();
+      message += `${index + 1}. Order #${order.orderNumber}\n`;
+      message += `   📅 Delivered: ${orderDate}\n`;
+      message += `   💰 Total: TZS ${order.totalAmount}\n`;
+      message += `   📦 Items: ${order.items.length}\n\n`;
+    });
+
+    message += 'Type the number (1-' + unratedOrders.length + ') or "cancel" to go back:';
+
+    await this.whatsappApi.sendTextMessage(phoneNumber, message);
+  }
+
+  private async handleRatingSelection(phoneNumber: string, content: string): Promise<void> {
+    if (content.toLowerCase() === 'cancel') {
+      return this.showMainMenu(phoneNumber);
+    }
+
+    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const unratedOrderIds = session.context?.unratedOrders || [];
+
+    // Check if user is selecting a star rating (1-5)
+    if (session.context?.selectedOrderForRating) {
+      const rating = parseInt(content);
+
+      if (isNaN(rating) || rating < 1 || rating > 5) {
+        await this.whatsappApi.sendTextMessage(
+          phoneNumber,
+          '❌ Please enter a valid rating between 1 and 5 stars.',
+        );
+        return;
+      }
+
+      const orderId = session.context.selectedOrderForRating;
+
+      await this.sessionService.updateSessionState(
+        phoneNumber,
+        SessionState.PROVIDING_FEEDBACK,
+        {
+          orderId,
+          rating,
+        },
+      );
+
+      const stars = '⭐'.repeat(rating);
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        `${stars} You rated this order ${rating}/5 stars!\n\n` +
+          '💬 Would you like to add feedback? (optional)\n\n' +
+          'Type your feedback or "skip" to finish:',
+      );
+      return;
+    }
+
+    // User is selecting which order to rate
+    const orderIndex = parseInt(content) - 1;
+
+    if (isNaN(orderIndex) || orderIndex < 0 || orderIndex >= unratedOrderIds.length) {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        `❌ Please enter a valid number between 1 and ${unratedOrderIds.length}.`,
+      );
+      return;
+    }
+
+    const selectedOrderId = unratedOrderIds[orderIndex];
+    const order = await this.orderService.findOne(selectedOrderId);
+
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.RATING_ORDER,
+      {
+        ...session.context,
+        selectedOrderForRating: selectedOrderId,
+      },
+    );
+
+    let message = `📦 *Order #${order.orderNumber}*\n\n`;
+    message += '🛍️ Items:\n';
+    order.items.forEach((item) => {
+      message += `• ${item.item.name} x${item.quantity}\n`;
+    });
+    message += `\n💰 Total: TZS ${order.totalAmount}\n\n`;
+    message += '⭐ *How would you rate this order?*\n\n';
+    message += 'Please rate from 1 to 5 stars:\n';
+    message += '1 ⭐ - Very Poor\n';
+    message += '2 ⭐⭐ - Poor\n';
+    message += '3 ⭐⭐⭐ - Average\n';
+    message += '4 ⭐⭐⭐⭐ - Good\n';
+    message += '5 ⭐⭐⭐⭐⭐ - Excellent\n\n';
+    message += 'Type a number (1-5) or "cancel":';
+
+    await this.whatsappApi.sendTextMessage(phoneNumber, message);
+  }
+
+  private async handleFeedbackInput(phoneNumber: string, content: string): Promise<void> {
+    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const orderId = session.context?.orderId;
+    const rating = session.context?.rating;
+
+    if (!orderId || !rating) {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        '❌ Session expired. Please start rating again.',
+      );
+      return this.showMainMenu(phoneNumber);
+    }
+
+    const feedback = content.toLowerCase() === 'skip' ? undefined : content;
+
+    try {
+      await this.orderService.rateOrder(orderId, rating, feedback);
+
+      const stars = '⭐'.repeat(rating);
+      let message = `${stars} Thank you for your ${rating}-star rating!\n\n`;
+
+      if (feedback) {
+        message += '💬 Your feedback has been recorded.\n\n';
+      }
+
+      message += '🙏 We appreciate your feedback and will use it to improve our service!\n\n';
+      message += 'Type "menu" to return to the main menu.';
+
+      await this.whatsappApi.sendTextMessage(phoneNumber, message);
+
+      // Check if there are more orders to rate
+      const unratedOrders = await this.orderService.getDeliveredOrdersForRating(phoneNumber);
+
+      if (unratedOrders.length > 0) {
+        await this.whatsappApi.sendTextMessage(
+          phoneNumber,
+          `📝 You have ${unratedOrders.length} more order(s) to rate.\n\nType "rate" to continue rating or "menu" for main menu.`,
+        );
+      }
+
+      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+    } catch (error) {
+      this.logger.error(`Error saving rating: ${error.message}`, error.stack);
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        '❌ Sorry, there was an error saving your rating. Please try again later.',
+      );
+      return this.showMainMenu(phoneNumber);
+    }
+  }
+
+  // ========== QUICK REORDER FLOW ==========
+
+  private async showOrderHistory(phoneNumber: string): Promise<void> {
+    this.logger.log(`Showing order history for ${phoneNumber}`);
+
+    const orders = await this.orderService.getOrderHistory(phoneNumber, 10);
+
+    if (orders.length === 0) {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        '📭 You have no previous orders yet.\n\nStart shopping to build your order history!',
+      );
+      return this.showMainMenu(phoneNumber);
+    }
+
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.VIEWING_ORDER_HISTORY,
+      { orderHistory: orders.map((o) => o.id) },
+    );
+
+    let message = '🔄 *Quick Reorder*\n\n';
+    message += 'Select an order to reorder:\n\n';
+
+    orders.forEach((order, index) => {
+      const orderDate = new Date(order.createdAt).toLocaleDateString();
+      const statusEmoji = order.status === 'delivered' ? '✅' : order.status === 'cancelled' ? '❌' : '⏳';
+
+      message += `${index + 1}. ${statusEmoji} Order #${order.orderNumber}\n`;
+      message += `   📅 Date: ${orderDate}\n`;
+      message += `   💰 Total: TZS ${order.totalAmount}\n`;
+      message += `   📦 Items: ${order.items.map(item => `${item.item.name} x${item.quantity}`).join(', ')}\n\n`;
+    });
+
+    message += 'Type the number (1-' + orders.length + ') to reorder, or "cancel":';
+
+    await this.whatsappApi.sendTextMessage(phoneNumber, message);
+  }
+
+  private async handleReorderSelection(phoneNumber: string, content: string): Promise<void> {
+    if (content.toLowerCase() === 'cancel') {
+      return this.showMainMenu(phoneNumber);
+    }
+
+    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const orderHistoryIds = session.context?.orderHistory || [];
+
+    const orderIndex = parseInt(content) - 1;
+
+    if (isNaN(orderIndex) || orderIndex < 0 || orderIndex >= orderHistoryIds.length) {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        `❌ Please enter a valid number between 1 and ${orderHistoryIds.length}.`,
+      );
+      return;
+    }
+
+    const selectedOrderId = orderHistoryIds[orderIndex];
+    const order = await this.orderService.findOne(selectedOrderId);
+
+    await this.sessionService.updateSessionState(
+      phoneNumber,
+      SessionState.SELECTING_REORDER,
+      {
+        reorderFromId: selectedOrderId,
+      },
+    );
+
+    let message = `🔄 *Reorder Confirmation*\n\n`;
+    message += `📦 Order #${order.orderNumber}\n\n`;
+    message += '🛍️ Items to be added to your cart:\n\n';
+
+    order.items.forEach((item) => {
+      message += `• ${item.item.name}\n`;
+      message += `  Qty: ${item.quantity} × TZS ${item.unitPrice} = TZS ${item.totalPrice}\n\n`;
+    });
+
+    message += `💰 Total: TZS ${order.totalAmount}\n\n`;
+    message += '✅ Type "confirm" to add these items to your cart\n';
+    message += '❌ Type "cancel" to go back';
+
+    await this.whatsappApi.sendTextMessage(phoneNumber, message);
+  }
+
+  private async handleReorderConfirmation(phoneNumber: string, content: string): Promise<void> {
+    if (content.toLowerCase() === 'cancel') {
+      return this.showMainMenu(phoneNumber);
+    }
+
+    if (content.toLowerCase() !== 'confirm') {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        'Please type "confirm" to proceed with the reorder, or "cancel" to go back.',
+      );
+      return;
+    }
+
+    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const reorderFromId = session.context?.reorderFromId;
+
+    if (!reorderFromId) {
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        '❌ Session expired. Please start reorder again.',
+      );
+      return this.showMainMenu(phoneNumber);
+    }
+
+    try {
+      const reorderDto = await this.orderService.reorderFromPreviousOrder(
+        reorderFromId,
+        phoneNumber,
+      );
+
+      // Get current cart
+      let cart = await this.sessionService.getCart(phoneNumber);
+
+      // Add items from previous order to cart
+      for (const item of reorderDto.items) {
+        const itemDetails = await this.itemService.findOne(item.itemId);
+        const activePrice = itemDetails.prices?.find((p) => p.isActive);
+
+        const existingItemIndex = cart.findIndex((cartItem) => cartItem.itemId === item.itemId);
+
+        if (existingItemIndex >= 0) {
+          cart[existingItemIndex].quantity += item.quantity;
+          cart[existingItemIndex].totalPrice =
+            cart[existingItemIndex].quantity * cart[existingItemIndex].unitPrice;
+        } else {
+          cart.push({
+            itemId: item.itemId,
+            itemName: itemDetails.name,
+            quantity: item.quantity,
+            unitPrice: activePrice?.sellingPrice || 0,
+            totalPrice: item.quantity * (activePrice?.sellingPrice || 0),
+            warehouseId: reorderDto.warehouseId,
+          });
+        }
+      }
+
+      await this.sessionService.updateContext(phoneNumber, { cart });
+
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        `✅ *Reorder Successful!*\n\n${reorderDto.items.length} items have been added to your cart.\n\nType "cart" to review your cart or "menu" for main menu.`,
+      );
+
+      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+    } catch (error) {
+      this.logger.error(`Error processing reorder: ${error.message}`, error.stack);
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        '❌ Sorry, there was an error processing your reorder. Some items may be out of stock. Please try again.',
+      );
+      return this.showMainMenu(phoneNumber);
     }
   }
 }

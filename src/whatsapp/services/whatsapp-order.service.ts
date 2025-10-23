@@ -345,4 +345,107 @@ export class WhatsAppOrderService {
 
     return stats;
   }
+
+  // ========== RATING & FEEDBACK ==========
+
+  async rateOrder(
+    orderId: number,
+    rating: number,
+    feedback?: string,
+  ): Promise<WhatsAppOrder> {
+    this.logger.log(`Rating order ${orderId} with ${rating} stars`);
+
+    if (rating < 1 || rating > 5) {
+      throw new BadRequestException('Rating must be between 1 and 5');
+    }
+
+    const order = await this.findOne(orderId);
+
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException('Can only rate delivered orders');
+    }
+
+    if (order.rating) {
+      throw new BadRequestException('Order has already been rated');
+    }
+
+    order.rating = rating;
+    order.feedback = feedback ? feedback : null;
+    order.ratedAt = new Date();
+
+    const updatedOrder = await this.orderRepository.save(order);
+    this.logger.log(`Order ${orderId} rated successfully: ${rating} stars`);
+
+    return updatedOrder;
+  }
+
+  async getDeliveredOrdersForRating(phoneNumber: string): Promise<WhatsAppOrder[]> {
+    this.logger.log(`Getting unrated delivered orders for ${phoneNumber}`);
+
+    const orders = await this.orderRepository.find({
+      where: {
+        customerPhone: phoneNumber,
+        status: OrderStatus.DELIVERED,
+      },
+      order: {
+        deliveredAt: 'DESC',
+      },
+    });
+
+    // Filter out already rated orders
+    const unratedOrders = orders.filter((order) => !order.rating);
+
+    this.logger.log(`Found ${unratedOrders.length} unrated delivered orders`);
+    return unratedOrders;
+  }
+
+  // ========== QUICK REORDER ==========
+
+  async getOrderHistory(
+    phoneNumber: string,
+    limit: number = 10,
+  ): Promise<WhatsAppOrder[]> {
+    this.logger.log(`Getting order history for ${phoneNumber}`);
+
+    const orders = await this.orderRepository.find({
+      where: {
+        customerPhone: phoneNumber,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      take: limit,
+    });
+
+    this.logger.log(`Found ${orders.length} orders in history`);
+    return orders;
+  }
+
+  async reorderFromPreviousOrder(
+    previousOrderId: number,
+    phoneNumber: string,
+  ): Promise<CreateWhatsAppOrderDto> {
+    this.logger.log(`Creating reorder from order ${previousOrderId}`);
+
+    const previousOrder = await this.findOne(previousOrderId);
+
+    if (previousOrder.customerPhone !== phoneNumber) {
+      throw new BadRequestException('Order does not belong to this customer');
+    }
+
+    // Build DTO for new order based on previous order
+    const reorderDto: CreateWhatsAppOrderDto = {
+      customerPhone: phoneNumber,
+      warehouseId: previousOrder.warehouse.id,
+      items: previousOrder.items.map((item) => ({
+        itemId: item.item.id,
+        quantity: item.quantity,
+      })),
+      deliveryAddress: previousOrder.deliveryAddress,
+      notes: `Reorder from ${previousOrder.orderNumber}`,
+    };
+
+    this.logger.log(`Reorder DTO created with ${reorderDto.items.length} items`);
+    return reorderDto;
+  }
 }
