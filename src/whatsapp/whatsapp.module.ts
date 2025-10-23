@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -31,7 +31,7 @@ import { SaleModule } from '../sale/sale.module';
     CustomerModule,
     WarehouseModule,
     CommonModule,
-    SaleModule,
+    forwardRef(() => SaleModule), // Use forwardRef to avoid circular dependency
   ],
   controllers: [WhatsAppController],
   providers: [

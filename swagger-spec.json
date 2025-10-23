@@ -2305,76 +2305,9 @@
         ]
       }
     },
-    "/expenses": {
-      "post": {
-        "operationId": "ExpenseController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateExpenseDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      },
-      "get": {
-        "operationId": "ExpenseController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      }
-    },
-    "/expenses/{id}": {
+    "/sales/{id}/status": {
       "put": {
-        "operationId": "ExpenseController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateExpenseDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      },
-      "get": {
-        "operationId": "ExpenseController_findOne",
+        "operationId": "SaleController_updateStatus",
         "parameters": [
           {
             "name": "id",
@@ -2391,87 +2324,7 @@
           }
         },
         "tags": [
-          "Expense"
-        ]
-      },
-      "delete": {
-        "operationId": "ExpenseController_delete",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      }
-    },
-    "/expenses/sales-expense-breakdown": {
-      "post": {
-        "operationId": "ExpenseController_findSalesExpenseBreakdown",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      }
-    },
-    "/expenses/expense-breakdown": {
-      "post": {
-        "operationId": "ExpenseController_findExpenseBreakdown",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
-        ]
-      }
-    },
-    "/expenses/filter-by-dates": {
-      "get": {
-        "operationId": "ExpenseController_findExpensesByDateRange",
-        "parameters": [
-          {
-            "name": "startDate",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endDate",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Expense"
+          "sales"
         ]
       }
     },
@@ -2680,6 +2533,176 @@
         "summary": "Generate WhatsApp click-to-chat link for a product",
         "tags": [
           "WhatsApp"
+        ]
+      }
+    },
+    "/expenses": {
+      "post": {
+        "operationId": "ExpenseController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      },
+      "get": {
+        "operationId": "ExpenseController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/expenses/{id}": {
+      "put": {
+        "operationId": "ExpenseController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      },
+      "get": {
+        "operationId": "ExpenseController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpenseController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/expenses/sales-expense-breakdown": {
+      "post": {
+        "operationId": "ExpenseController_findSalesExpenseBreakdown",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/expenses/expense-breakdown": {
+      "post": {
+        "operationId": "ExpenseController_findExpenseBreakdown",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
+        ]
+      }
+    },
+    "/expenses/filter-by-dates": {
+      "get": {
+        "operationId": "ExpenseController_findExpensesByDateRange",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Expense"
         ]
       }
     },
@@ -2967,11 +2990,11 @@
           }
         }
       },
-      "CreateExpenseDto": {
+      "WhatsAppMessageDto": {
         "type": "object",
         "properties": {}
       },
-      "WhatsAppMessageDto": {
+      "CreateExpenseDto": {
         "type": "object",
         "properties": {}
       }
