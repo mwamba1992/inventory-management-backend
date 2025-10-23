@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { WhatsAppController } from './whatsapp.controller';
 import { WhatsAppApiService } from './services/whatsapp-api.service';
 import { SessionService } from './services/session.service';
 import { MessageHandlerService } from './services/message-handler.service';
 import { WhatsAppOrderService } from './services/whatsapp-order.service';
+import { AbandonedCartService } from './services/abandoned-cart.service';
 import { WhatsAppOrder } from './entities/whatsapp-order.entity';
 import { WhatsAppOrderItem } from './entities/whatsapp-order-item.entity';
 import { WhatsAppSession } from './entities/whatsapp-session.entity';
@@ -22,6 +24,7 @@ import { SaleModule } from '../sale/sale.module';
       WhatsAppOrderItem,
       WhatsAppSession,
     ]),
+    ScheduleModule.forRoot(),
     HttpModule,
     ItemModule,
     CustomerModule,
@@ -35,6 +38,7 @@ import { SaleModule } from '../sale/sale.module';
     SessionService,
     MessageHandlerService,
     WhatsAppOrderService,
+    AbandonedCartService,
   ],
   exports: [
     WhatsAppApiService,

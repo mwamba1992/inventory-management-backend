@@ -38,6 +38,9 @@ export class WhatsAppSession {
   @Column({ name: 'last_message_id', nullable: true })
   lastMessageId: string;
 
+  @Column({ name: 'last_cart_reminder_at', type: 'timestamp', nullable: true })
+  lastCartReminderAt: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

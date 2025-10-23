@@ -353,7 +353,12 @@ export class MessageHandlerService {
     for (const item of categoryItems.slice(0, 9)) {
       const activePrice = item.prices?.find((p) => p.isActive);
       const stock = item.stock?.[0];
-      const stockInfo = stock ? `Stock: ${stock.quantity}` : 'Out of stock';
+      const stockQuantity = stock?.quantity || 0;
+      const stockInfo = stockQuantity === 0
+        ? 'Out of stock'
+        : stockQuantity <= 5
+        ? `⚠️ Only ${stockQuantity} left!`
+        : `Stock: ${stockQuantity}`;
 
       rows.push({
         id: `item_${item.id}`,
@@ -419,11 +424,16 @@ export class MessageHandlerService {
     );
 
     const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
+    const stockQuantity = stock?.quantity || 0;
+    const stockWarning = stockQuantity > 0 && stockQuantity <= 5
+      ? `\n⚠️ *Only ${stockQuantity} left in stock!*`
+      : '';
+
     const productDetails =
       `📦 *${item.name}*\n` +
       `${conditionBadge}\n` +
       `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
-      `📊 Available: ${stock?.quantity || 0} units\n\n` +
+      `📊 Available: ${stockQuantity} units${stockWarning}\n\n` +
       `Please enter the quantity you want to order (or type "cancel" to go back):`;
 
     this.logger.log(`Request Quantity - Item: ${item.name}, Has image: ${!!item.imageUrl}, Image URL: ${item.imageUrl || 'none'}`);
@@ -562,7 +572,12 @@ export class MessageHandlerService {
     const rows = searchResults.slice(0, 9).map((item) => {
       const activePrice = item.prices?.find((p) => p.isActive);
       const stock = item.stock?.[0];
-      const stockInfo = stock ? `Stock: ${stock.quantity}` : 'Out of stock';
+      const stockQuantity = stock?.quantity || 0;
+      const stockInfo = stockQuantity === 0
+        ? 'Out of stock'
+        : stockQuantity <= 5
+        ? `⚠️ Only ${stockQuantity} left!`
+        : `Stock: ${stockQuantity}`;
 
       return {
         id: `item_${item.id}`,
@@ -631,13 +646,18 @@ export class MessageHandlerService {
     );
 
     const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
+    const stockQuantity = stock?.quantity || 0;
+    const stockWarning = stockQuantity > 0 && stockQuantity <= 5
+      ? `\n⚠️ *Only ${stockQuantity} left in stock!*`
+      : '';
+
     const productDetails =
       `✅ Product Found!\n\n` +
       `📦 ${item.name}\n` +
       `${conditionBadge}\n` +
       `🔢 Code: ${item.code}\n` +
       `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
-      `📊 Available: ${stock?.quantity || 0} units\n` +
+      `📊 Available: ${stockQuantity} units${stockWarning}\n` +
       `${item.desc ? `\n📝 ${item.desc}\n` : ''}\n` +
       `Please enter the quantity you want to order (or type "cancel" to go back):`;
 
@@ -1020,13 +1040,18 @@ export class MessageHandlerService {
       const stock = item.stock?.[0];
 
       const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
+      const stockQuantity = stock?.quantity || 0;
+      const stockWarning = stockQuantity > 0 && stockQuantity <= 5
+        ? `\n⚠️ *Only ${stockQuantity} left in stock!*`
+        : '';
+
       const productDetails =
         `🎯 Quick Order\n\n` +
         `📦 *${item.name}*\n` +
         `${conditionBadge}\n` +
         `🔖 Code: ${item.code || 'N/A'}\n` +
         `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
-        `📊 Available: ${stock?.quantity || 0} units\n\n` +
+        `📊 Available: ${stockQuantity} units${stockWarning}\n\n` +
         `Please enter the quantity you want to order (or type "cancel" to exit):`;
 
       this.logger.log(`Quick Order - Item: ${item.name}, Has image: ${!!item.imageUrl}, Image URL: ${item.imageUrl || 'none'}`);
