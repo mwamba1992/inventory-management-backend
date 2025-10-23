@@ -418,8 +418,10 @@ export class MessageHandlerService {
       },
     );
 
+    const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
     const productDetails =
       `📦 *${item.name}*\n` +
+      `${conditionBadge}\n` +
       `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
       `📊 Available: ${stock?.quantity || 0} units\n\n` +
       `Please enter the quantity you want to order (or type "cancel" to go back):`;
@@ -628,9 +630,11 @@ export class MessageHandlerService {
       },
     );
 
+    const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
     const productDetails =
       `✅ Product Found!\n\n` +
       `📦 ${item.name}\n` +
+      `${conditionBadge}\n` +
       `🔢 Code: ${item.code}\n` +
       `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
       `📊 Available: ${stock?.quantity || 0} units\n` +
@@ -1015,9 +1019,11 @@ export class MessageHandlerService {
       const activePrice = item.prices?.find((p) => p.isActive);
       const stock = item.stock?.[0];
 
+      const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
       const productDetails =
         `🎯 Quick Order\n\n` +
         `📦 *${item.name}*\n` +
+        `${conditionBadge}\n` +
         `🔖 Code: ${item.code || 'N/A'}\n` +
         `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
         `📊 Available: ${stock?.quantity || 0} units\n\n` +

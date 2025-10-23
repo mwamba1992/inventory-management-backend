@@ -15,6 +15,11 @@ import { ItemAccountMapping } from './item-account-mapping.entity';
 import { Warehouse } from '../../../settings/warehouse/entities/warehouse.entity';
 import { ItemSupplier } from '../../../settings/item-suppliers/entities/item-supplier.entity';
 
+export enum ItemCondition {
+  NEW = 'new',
+  USED = 'used',
+}
+
 @Entity()
 export class Item extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -31,6 +36,13 @@ export class Item extends BaseEntity {
 
   @Column({ nullable: true })
   imageUrl: string;
+
+  @Column({
+    type: 'enum',
+    enum: ItemCondition,
+    default: ItemCondition.NEW,
+  })
+  condition: ItemCondition;
 
   @ManyToOne(() => Common, (category) => category.items, { nullable: true })
   category: Common;
