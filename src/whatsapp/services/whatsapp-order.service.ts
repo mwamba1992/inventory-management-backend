@@ -12,6 +12,8 @@ import { CreateWhatsAppOrderDto } from '../dto/create-order.dto';
 import { ItemService } from '../../items/item/item.service';
 import { CustomerService } from '../../settings/customer/customer.service';
 import { WarehouseService } from '../../settings/warehouse/warehouse.service';
+import { SaleService } from '../../sale/sale.service';
+import { WhatsAppApiService } from './whatsapp-api.service';
 
 @Injectable()
 export class WhatsAppOrderService {
@@ -25,6 +27,8 @@ export class WhatsAppOrderService {
     private readonly itemService: ItemService,
     private readonly customerService: CustomerService,
     private readonly warehouseService: WarehouseService,
+    private readonly saleService: SaleService,
+    private readonly whatsappApi: WhatsAppApiService,
   ) {}
 
   async createOrder(dto: CreateWhatsAppOrderDto): Promise<WhatsAppOrder> {
@@ -56,7 +60,7 @@ export class WhatsAppOrderService {
         throw new BadRequestException(`Item ${item.name} has no active price`);
       }
 
-      // Check stock
+      // Check stock availability (but don't deduct yet - will deduct on delivery)
       const itemStock = item.stock?.[0];
       if (!itemStock || itemStock.quantity < itemDto.quantity) {
         throw new BadRequestException(
@@ -77,12 +81,7 @@ export class WhatsAppOrderService {
 
       orderItems.push(orderItem);
 
-      // Update stock
-      await this.itemService.updateItemStock(itemStock.id, {
-        quantity: itemStock.quantity - itemDto.quantity,
-      });
-
-      this.logger.log(`Updated stock for item ${item.name}: ${itemStock.quantity} -> ${itemStock.quantity - itemDto.quantity}`);
+      this.logger.log(`Reserved ${itemDto.quantity} units of ${item.name} for order (stock will be deducted on delivery)`);
     }
 
     // Generate order number
@@ -137,41 +136,174 @@ export class WhatsAppOrderService {
 
   async updateOrderStatus(id: number, status: OrderStatus): Promise<WhatsAppOrder> {
     const order = await this.findOne(id);
+    const previousStatus = order.status;
     order.status = status;
 
     if (status === OrderStatus.CONFIRMED && !order.confirmedAt) {
       order.confirmedAt = new Date();
     }
 
-    if (status === OrderStatus.DELIVERED && !order.deliveredAt) {
-      order.deliveredAt = new Date();
+    // Handle delivery: Deduct stock and create sale records
+    if (status === OrderStatus.DELIVERED && previousStatus !== OrderStatus.DELIVERED) {
+      this.logger.log(`Processing delivery for order ${order.orderNumber}`);
+
+      if (!order.deliveredAt) {
+        order.deliveredAt = new Date();
+      }
+
+      // Get customer for sales records
+      const customers = await this.customerService.findAll();
+      const customer = customers.find((c) => c.phone === order.customerPhone);
+
+      // Process each item: Deduct stock and create sale
+      for (const orderItem of order.items) {
+        const item = await this.itemService.findOne(orderItem.item.id);
+        const itemStock = item.stock?.find((s) => s.warehouse?.id === order.warehouse.id);
+
+        if (!itemStock) {
+          throw new BadRequestException(
+            `Stock not found for item ${item.name} in warehouse ${order.warehouse.name}`
+          );
+        }
+
+        // Check if sufficient stock is available
+        if (itemStock.quantity < orderItem.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for ${item.name}. Available: ${itemStock.quantity}, Required: ${orderItem.quantity}`
+          );
+        }
+
+        // Deduct stock
+        await this.itemService.updateItemStock(itemStock.id, {
+          quantity: itemStock.quantity - orderItem.quantity,
+        });
+
+        this.logger.log(
+          `Deducted ${orderItem.quantity} units of ${item.name}. Stock: ${itemStock.quantity} -> ${itemStock.quantity - orderItem.quantity}`
+        );
+
+        // Create sale record
+        if (customer) {
+          await this.saleService.create({
+            customerId: customer.id,
+            itemId: item.id,
+            warehouseId: order.warehouse.id,
+            quantity: orderItem.quantity,
+            amountPaid: orderItem.totalPrice,
+            remarks: `WhatsApp Order #${order.orderNumber}`,
+          });
+
+          this.logger.log(
+            `Created sale record for ${item.name} (Order: ${order.orderNumber})`
+          );
+        }
+      }
+
+      this.logger.log(`Order ${order.orderNumber} delivered successfully`);
     }
 
-    return this.orderRepository.save(order);
+    // Save order first
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Send WhatsApp notification to customer about status change
+    await this.sendStatusNotification(savedOrder, previousStatus, status);
+
+    return savedOrder;
+  }
+
+  private async sendStatusNotification(
+    order: WhatsAppOrder,
+    previousStatus: OrderStatus,
+    newStatus: OrderStatus,
+  ): Promise<void> {
+    try {
+      let message = '';
+
+      // Build order summary
+      const itemsList = order.items
+        .map((item) => `• ${item.item.name} x${item.quantity} - TZS ${item.totalPrice}`)
+        .join('\n');
+
+      switch (newStatus) {
+        case OrderStatus.CONFIRMED:
+          message = `✅ *Order Confirmed!*\n\n` +
+            `Your order *#${order.orderNumber}* has been confirmed!\n\n` +
+            `*Items:*\n${itemsList}\n\n` +
+            `*Total:* TZS ${order.totalAmount}\n` +
+            `*Delivery Address:* ${order.deliveryAddress || 'Not specified'}\n\n` +
+            `We're preparing your order for delivery. You'll be notified when it's ready!`;
+          break;
+
+        case OrderStatus.PROCESSING:
+          message = `⏳ *Order Processing*\n\n` +
+            `Your order *#${order.orderNumber}* is being prepared.\n\n` +
+            `We'll notify you when it's ready for delivery!`;
+          break;
+
+        case OrderStatus.READY:
+          message = `📦 *Order Ready!*\n\n` +
+            `Great news! Your order *#${order.orderNumber}* is ready for delivery!\n\n` +
+            `*Items:*\n${itemsList}\n\n` +
+            `*Total Amount:* TZS ${order.totalAmount}\n` +
+            `*Payment:* Cash on Delivery\n\n` +
+            `Our delivery team will contact you shortly!`;
+          break;
+
+        case OrderStatus.DELIVERED:
+          message = `✅ *Order Delivered!*\n\n` +
+            `Your order *#${order.orderNumber}* has been delivered successfully!\n\n` +
+            `*Items:*\n${itemsList}\n\n` +
+            `*Total Paid:* TZS ${order.totalAmount}\n\n` +
+            `Thank you for shopping with us! 🎉\n\n` +
+            `Type *menu* anytime to place a new order.`;
+          break;
+
+        case OrderStatus.CANCELLED:
+          message = `❌ *Order Cancelled*\n\n` +
+            `Your order *#${order.orderNumber}* has been cancelled.\n\n` +
+            `If you have any questions, please contact us.\n\n` +
+            `Type *menu* to place a new order.`;
+          break;
+
+        default:
+          // No notification for other statuses
+          return;
+      }
+
+      if (message) {
+        await this.whatsappApi.sendTextMessage(order.customerPhone, message);
+        this.logger.log(
+          `Sent ${newStatus} notification to ${order.customerPhone} for order ${order.orderNumber}`
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send status notification for order ${order.orderNumber}: ${error.message}`,
+        error.stack
+      );
+      // Don't throw error - notification failure shouldn't block status update
+    }
   }
 
   async cancelOrder(id: number): Promise<WhatsAppOrder> {
     const order = await this.findOne(id);
+    const previousStatus = order.status;
 
     if (order.status === OrderStatus.DELIVERED) {
       throw new BadRequestException('Cannot cancel a delivered order');
     }
 
-    // Restore stock
-    for (const orderItem of order.items) {
-      const item = await this.itemService.findOne(orderItem.item.id);
-      const itemStock = item.stock?.find((s) => s.warehouse?.id === order.warehouse.id);
-
-      if (itemStock) {
-        await this.itemService.updateItemStock(itemStock.id, {
-          quantity: itemStock.quantity + orderItem.quantity,
-        });
-        this.logger.log(`Restored stock for item ${item.name}: +${orderItem.quantity}`);
-      }
-    }
+    // No need to restore stock since it wasn't deducted yet
+    // Stock is only deducted when order status changes to DELIVERED
+    this.logger.log(`Cancelling order ${order.orderNumber}`);
 
     order.status = OrderStatus.CANCELLED;
-    return this.orderRepository.save(order);
+    const savedOrder = await this.orderRepository.save(order);
+
+    // Send cancellation notification to customer
+    await this.sendStatusNotification(savedOrder, previousStatus, OrderStatus.CANCELLED);
+
+    return savedOrder;
   }
 
   private async generateOrderNumber(): Promise<string> {

@@ -16,5 +16,6 @@ import { WhatsAppService } from './awarness.sales';
   ],
   controllers: [SaleController],
   providers: [SaleService, WhatsAppService],
+  exports: [SaleService], // Export SaleService for use in other modules
 })
 export class SaleModule {}

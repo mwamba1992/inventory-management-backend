@@ -13,6 +13,7 @@ import { ItemModule } from '../items/item/item.module';
 import { CustomerModule } from '../settings/customer/customer.module';
 import { WarehouseModule } from '../settings/warehouse/warehouse.module';
 import { CommonModule } from '../settings/common/common.module';
+import { SaleModule } from '../sale/sale.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CommonModule } from '../settings/common/common.module';
     CustomerModule,
     WarehouseModule,
     CommonModule,
+    SaleModule,
   ],
   controllers: [WhatsAppController],
   providers: [
