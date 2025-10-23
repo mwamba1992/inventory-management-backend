@@ -192,4 +192,15 @@ export class WhatsAppController {
   async getOrderStats() {
     return this.orderService.getOrderStats();
   }
+
+  /**
+   * Generate WhatsApp product link
+   */
+  @Get('product-link/:itemId')
+  @ApiOperation({ summary: 'Generate WhatsApp click-to-chat link for a product' })
+  @ApiParam({ name: 'itemId', description: 'Product/Item ID' })
+  @ApiResponse({ status: 200, description: 'Returns WhatsApp link' })
+  async generateProductLink(@Param('itemId') itemId: number) {
+    return this.messageHandler.generateProductLink(itemId);
+  }
 }

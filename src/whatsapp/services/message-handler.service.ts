@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SessionService } from './session.service';
 import { WhatsAppApiService } from './whatsapp-api.service';
 import { WhatsAppOrderService } from './whatsapp-order.service';
@@ -20,6 +21,7 @@ export class MessageHandlerService {
     private readonly itemService: ItemService,
     private readonly commonService: CommonService,
     private readonly customerService: CustomerService,
+    private readonly configService: ConfigService,
   ) {}
 
   async handleIncomingMessage(
@@ -41,6 +43,13 @@ export class MessageHandlerService {
 
       // Extract message content
       const messageContent = this.extractMessageContent(message);
+
+      // Check for quick order format (ORDER:PROD-XXX or ORDER:<itemId>)
+      if (messageContent.startsWith('ORDER:')) {
+        const productIdentifier = messageContent.substring(6).trim();
+        await this.handleQuickOrder(phoneNumber, productIdentifier);
+        return;
+      }
 
       // Route based on session state
       await this.routeMessage(phoneNumber, session.state, messageContent);
@@ -865,6 +874,114 @@ export class MessageHandlerService {
       'Need assistance? Contact our support team!';
 
     await this.whatsappApi.sendTextMessage(phoneNumber, helpMessage);
+  }
+
+  /**
+   * Generate WhatsApp click-to-chat link for a product
+   */
+  async generateProductLink(itemId: number): Promise<any> {
+    try {
+      // Get item details
+      const item = await this.itemService.findOne(itemId);
+      if (!item) {
+        throw new NotFoundException(`Product with ID ${itemId} not found`);
+      }
+
+      // Get active price and stock
+      const activePrice = item.prices?.find((p) => p.isActive);
+      const stock = item.stock?.[0];
+
+      // For click-to-chat, we need the actual phone number (not Phone Number ID)
+      // Format: country code + number (e.g., 255676107301 for Tanzania)
+      const businessPhone = '255676107301'; // Your actual business WhatsApp number
+
+      // Generate pre-filled message
+      const message = `ORDER:${item.id}`;
+      const encodedMessage = encodeURIComponent(message);
+
+      // Generate WhatsApp link
+      const whatsappLink = `https://wa.me/${businessPhone}?text=${encodedMessage}`;
+
+      return {
+        success: true,
+        item: {
+          id: item.id,
+          name: item.name,
+          code: item.code,
+          price: activePrice?.sellingPrice || 0,
+          stock: stock?.quantity || 0,
+        },
+        whatsappLink,
+        shortMessage: message,
+        instructions: 'Click the link to open WhatsApp and start ordering this product',
+      };
+    } catch (error) {
+      this.logger.error(`Error generating product link: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle quick order from WhatsApp link
+   */
+  private async handleQuickOrder(
+    phoneNumber: string,
+    productIdentifier: string,
+  ): Promise<void> {
+    try {
+      this.logger.log(`Quick order request for: ${productIdentifier} from ${phoneNumber}`);
+
+      // Try to find item by ID or code
+      let item;
+      const itemId = parseInt(productIdentifier);
+
+      if (!isNaN(itemId)) {
+        // Search by ID
+        item = await this.itemService.findOne(itemId);
+      } else {
+        // Search by code
+        const items = await this.itemService.findAll();
+        item = items.find((i) => i.code?.toLowerCase() === productIdentifier.toLowerCase());
+      }
+
+      if (!item) {
+        await this.whatsappApi.sendTextMessage(
+          phoneNumber,
+          `Sorry, product "${productIdentifier}" not found.\n\nType *menu* to browse our catalog.`
+        );
+        return this.showMainMenu(phoneNumber);
+      }
+
+      // Get product details
+      const activePrice = item.prices?.find((p) => p.isActive);
+      const stock = item.stock?.[0];
+
+      // Send product info and ask for quantity
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        `🎯 Quick Order\n\n` +
+        `📦 *${item.name}*\n` +
+        `🔖 Code: ${item.code || 'N/A'}\n` +
+        `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
+        `📊 Available: ${stock?.quantity || 0} units\n\n` +
+        `Please enter the quantity you want to order (or type "cancel" to exit):`,
+      );
+
+      // Set session to add to cart state with selected item
+      await this.sessionService.updateSessionState(
+        phoneNumber,
+        SessionState.ADDING_TO_CART,
+        {
+          selectedItemId: item.id,
+        },
+      );
+    } catch (error) {
+      this.logger.error(`Error handling quick order: ${error.message}`, error.stack);
+      await this.whatsappApi.sendTextMessage(
+        phoneNumber,
+        'Sorry, something went wrong. Please try again or type "menu".',
+      );
+    }
   }
 
   private async ensureCustomerExists(

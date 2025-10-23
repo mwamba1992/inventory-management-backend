@@ -2481,6 +2481,31 @@
         ]
       }
     },
+    "/whatsapp/product-link/{itemId}": {
+      "get": {
+        "operationId": "WhatsAppController_generateProductLink",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns WhatsApp link"
+          }
+        },
+        "summary": "Generate WhatsApp click-to-chat link for a product",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
     "/reports/business-overview": {
       "get": {
         "operationId": "ReportsController_getBusinessOverview",
