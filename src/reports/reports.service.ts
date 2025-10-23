@@ -854,13 +854,67 @@ export class ReportsService {
   }
 
   /**
+   * Calculate Cost of Goods Sold (COGS) for a date range
+   * COGS = Sum of (purchaseAmount + freightAmount) * quantity for all sales
+   */
+  private async getCOGS(startDate: Date, endDate: Date): Promise<number> {
+    // Get COGS from regular sales
+    const salesWithPrices = await this.saleRepository
+      .createQueryBuilder('sale')
+      .leftJoin('sale.item', 'item')
+      .leftJoin('item.prices', 'price', 'price.isActive = :isActive', {
+        isActive: true,
+      })
+      .select('sale.quantity', 'quantity')
+      .addSelect('COALESCE(price.purchaseAmount, 0)', 'purchaseAmount')
+      .addSelect('COALESCE(price.freightAmount, 0)', 'freightAmount')
+      .where('sale.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getRawMany();
+
+    const salesCOGS = salesWithPrices.reduce((total, sale) => {
+      const costPerUnit = Number(sale.purchaseAmount) + Number(sale.freightAmount);
+      return total + costPerUnit * Number(sale.quantity);
+    }, 0);
+
+    // Get COGS from WhatsApp orders (only delivered orders)
+    const whatsappOrders = await this.whatsappOrderRepository
+      .createQueryBuilder('wo')
+      .leftJoin('wo.items', 'orderItem')
+      .leftJoin('orderItem.item', 'item')
+      .leftJoin('item.prices', 'price', 'price.isActive = :isActive', {
+        isActive: true,
+      })
+      .select('orderItem.quantity', 'quantity')
+      .addSelect('COALESCE(price.purchaseAmount, 0)', 'purchaseAmount')
+      .addSelect('COALESCE(price.freightAmount, 0)', 'freightAmount')
+      .where('wo.deliveredAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .andWhere('wo.status = :status', { status: 'delivered' })
+      .getRawMany();
+
+    const whatsappCOGS = whatsappOrders.reduce((total, order) => {
+      const costPerUnit = Number(order.purchaseAmount) + Number(order.freightAmount);
+      return total + costPerUnit * Number(order.quantity);
+    }, 0);
+
+    return salesCOGS + whatsappCOGS;
+  }
+
+  /**
    * Get total expenses for a date range
+   * Includes both expenses from expense table and COGS
    */
   private async getTotalExpenses(
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
-    const result = await this.expenseRepository
+    // Get expenses from expense table
+    const expenseResult = await this.expenseRepository
       .createQueryBuilder('expense')
       .select('COALESCE(SUM(expense.amount), 0)', 'total')
       .where('expense.expenseDate BETWEEN :startDate AND :endDate', {
@@ -869,17 +923,28 @@ export class ReportsService {
       })
       .getRawOne();
 
-    return Number(result?.total || 0);
+    const otherExpenses = Number(expenseResult?.total || 0);
+
+    // Calculate COGS
+    const cogs = await this.getCOGS(startDate, endDate);
+
+    // Total expenses = COGS + Other Expenses
+    return cogs + otherExpenses;
   }
 
   /**
    * Get expense breakdown by category
+   * Includes COGS as the first category, followed by other expenses
    */
   private async getExpenseBreakdown(
     startDate: Date,
     endDate: Date,
     totalExpenses: number,
   ): Promise<Array<{ category: string; amount: number; percentage: number }>> {
+    // Get COGS
+    const cogs = await this.getCOGS(startDate, endDate);
+
+    // Get other expenses grouped by category
     const expenses = await this.expenseRepository
       .createQueryBuilder('expense')
       .select('expense.category', 'category')
@@ -892,13 +957,33 @@ export class ReportsService {
       .orderBy('amount', 'DESC')
       .getRawMany();
 
-    return expenses.map((expense) => ({
-      category: expense.category,
-      amount: Math.round(Number(expense.amount)),
-      percentage:
-        totalExpenses > 0
-          ? Math.round((Number(expense.amount) / totalExpenses) * 1000) / 10
-          : 0,
-    }));
+    // Build breakdown array with COGS first
+    const breakdown: Array<{ category: string; amount: number; percentage: number }> = [];
+
+    // Add COGS as first category
+    if (cogs > 0) {
+      breakdown.push({
+        category: 'Cost of Goods Sold (COGS)',
+        amount: Math.round(cogs),
+        percentage:
+          totalExpenses > 0
+            ? Math.round((cogs / totalExpenses) * 1000) / 10
+            : 0,
+      });
+    }
+
+    // Add other expense categories
+    expenses.forEach((expense) => {
+      breakdown.push({
+        category: expense.category,
+        amount: Math.round(Number(expense.amount)),
+        percentage:
+          totalExpenses > 0
+            ? Math.round((Number(expense.amount) / totalExpenses) * 1000) / 10
+            : 0,
+      });
+    });
+
+    return breakdown;
   }
 }
