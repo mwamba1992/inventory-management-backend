@@ -42,6 +42,10 @@ export class WhatsAppApiService {
     imageUrl: string,
     caption?: string,
   ): Promise<any> {
+    this.logger.log(`📸 Sending image message to ${to}`);
+    this.logger.log(`Image URL: ${imageUrl}`);
+    this.logger.log(`Caption length: ${caption?.length || 0} chars`);
+
     const payload: ImageMessage = {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -53,7 +57,10 @@ export class WhatsAppApiService {
       },
     };
 
-    return this.sendMessage(payload);
+    this.logger.log(`Sending image payload: ${JSON.stringify(payload)}`);
+    const result = await this.sendMessage(payload);
+    this.logger.log(`Image message sent successfully: ${JSON.stringify(result)}`);
+    return result;
   }
 
   async sendButtonMessage(
