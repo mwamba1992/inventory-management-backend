@@ -62,6 +62,18 @@ export interface InteractiveListMessage {
   };
 }
 
+export interface ImageMessage {
+  messaging_product: 'whatsapp';
+  recipient_type: 'individual';
+  to: string;
+  type: 'image';
+  image: {
+    link?: string;
+    id?: string;
+    caption?: string;
+  };
+}
+
 export interface CartItem {
   itemId: number;
   itemName: string;

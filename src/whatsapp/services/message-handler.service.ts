@@ -207,16 +207,16 @@ export class MessageHandlerService {
         await this.showCart(phoneNumber);
         break;
 
+      case 'track_order':
+        await this.showOrderTracking(phoneNumber);
+        break;
+
       case 'checkout':
         await this.initiateCheckout(phoneNumber);
         break;
 
       case 'continue_shopping':
         await this.showMainMenu(phoneNumber);
-        break;
-
-      case 'track_order':
-        await this.showOrderTracking(phoneNumber);
         break;
 
       default:
@@ -384,13 +384,22 @@ export class MessageHandlerService {
       },
     );
 
-    await this.whatsappApi.sendTextMessage(
-      phoneNumber,
-      `📦 ${item.name}\n` +
-        `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
-        `📊 Available: ${stock?.quantity || 0} units\n\n` +
-        `Please enter the quantity you want to order (or type "cancel" to go back):`,
-    );
+    const productDetails =
+      `📦 *${item.name}*\n` +
+      `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
+      `📊 Available: ${stock?.quantity || 0} units\n\n` +
+      `Please enter the quantity you want to order (or type "cancel" to go back):`;
+
+    // Send image with caption if available, otherwise send text only
+    if (item.imageUrl) {
+      await this.whatsappApi.sendImageMessage(
+        phoneNumber,
+        item.imageUrl,
+        productDetails,
+      );
+    } else {
+      await this.whatsappApi.sendTextMessage(phoneNumber, productDetails);
+    }
   }
 
   private async handleAddToCart(
@@ -755,8 +764,7 @@ export class MessageHandlerService {
             `Order #${order.orderNumber}\n` +
             `Total: TZS ${order.totalAmount}\n` +
             `Status: ${order.status}\n\n` +
-            `We'll notify you when your order is ready for delivery!\n\n` +
-            `Type "track" to track your order or "menu" for main menu.`,
+            `We'll notify you when your order is ready for delivery!`,
         );
 
         await this.sessionService.updateSessionState(
@@ -956,16 +964,24 @@ export class MessageHandlerService {
       const activePrice = item.prices?.find((p) => p.isActive);
       const stock = item.stock?.[0];
 
-      // Send product info and ask for quantity
-      await this.whatsappApi.sendTextMessage(
-        phoneNumber,
+      const productDetails =
         `🎯 Quick Order\n\n` +
         `📦 *${item.name}*\n` +
         `🔖 Code: ${item.code || 'N/A'}\n` +
         `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
         `📊 Available: ${stock?.quantity || 0} units\n\n` +
-        `Please enter the quantity you want to order (or type "cancel" to exit):`,
-      );
+        `Please enter the quantity you want to order (or type "cancel" to exit):`;
+
+      // Send image with caption if available, otherwise send text only
+      if (item.imageUrl) {
+        await this.whatsappApi.sendImageMessage(
+          phoneNumber,
+          item.imageUrl,
+          productDetails,
+        );
+      } else {
+        await this.whatsappApi.sendTextMessage(phoneNumber, productDetails);
+      }
 
       // Set session to add to cart state with selected item
       await this.sessionService.updateSessionState(

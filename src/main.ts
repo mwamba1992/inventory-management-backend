@@ -9,11 +9,47 @@ async function bootstrap() {
 
   // Swagger configuration
   const config = new DocumentBuilder()
-    .setTitle('Inventory System API')
-    .setDescription('API documentation for the inventory and accounting system')
+    .setTitle('Inventory Management System API')
+    .setDescription(
+      `Complete API documentation for the Inventory Management System with WhatsApp integration.
+
+## Features
+- 📦 **Inventory Management** - Products, stock, pricing, warehouses
+- 💰 **Sales & Expenses** - Track sales, expenses, and revenue
+- 👥 **Customer Management** - Customer records and history
+- 📱 **WhatsApp Integration** - Order via WhatsApp with product images
+- 📸 **Image Upload** - Cloudinary CDN integration with auto-optimization
+- 📊 **Reports & Analytics** - Business insights and metrics
+
+## Image Upload
+Products support image uploads via Cloudinary CDN:
+- Auto-optimization and compression
+- Automatic resizing to 800x800px max
+- WebP format conversion for faster loading
+- Images display automatically in WhatsApp bot
+
+## WhatsApp Bot
+Customers can order products directly via WhatsApp:
+- Browse products by category
+- View product images and prices
+- Add to cart and checkout
+- Track orders in real-time
+- Receive order status notifications
+      `,
+    )
     .setVersion('1.0')
-    // .addBearerAuth()           // if you use JWT auth
-    // .addTag('accounts')        // optional root-level tags
+    .setContact(
+      'Support',
+      'https://github.com/yourusername',
+      'support@yourcompany.com',
+    )
+    // .addBearerAuth()           // Uncomment if using JWT auth
+    .addTag('Items', 'Product/Item management and image uploads')
+    .addTag('WhatsApp', 'WhatsApp bot integration and order management')
+    .addTag('Sales', 'Sales transactions and analytics')
+    .addTag('Customers', 'Customer management')
+    .addTag('Warehouses', 'Warehouse management')
+    .addTag('Reports', 'Business reports and analytics')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

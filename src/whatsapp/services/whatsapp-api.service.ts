@@ -5,6 +5,7 @@ import {
   TextMessage,
   InteractiveButtonMessage,
   InteractiveListMessage,
+  ImageMessage,
 } from '../interfaces/message.interface';
 
 @Injectable()
@@ -30,6 +31,25 @@ export class WhatsAppApiService {
       text: {
         preview_url: false,
         body: message,
+      },
+    };
+
+    return this.sendMessage(payload);
+  }
+
+  async sendImageMessage(
+    to: string,
+    imageUrl: string,
+    caption?: string,
+  ): Promise<any> {
+    const payload: ImageMessage = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'image',
+      image: {
+        link: imageUrl,
+        caption: caption?.substring(0, 1024), // WhatsApp caption limit
       },
     };
 

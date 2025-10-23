@@ -29,6 +29,9 @@ export class Item extends BaseEntity {
   @Column({ nullable: true })
   desc: string;
 
+  @Column({ nullable: true })
+  imageUrl: string;
+
   @ManyToOne(() => Common, (category) => category.items, { nullable: true })
   category: Common;
 

@@ -12,6 +12,7 @@ import { ItemAccountMapping } from './entities/item-account-mapping.entity';
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { Sale } from '../../sale/entities/sale.entity';
 import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
+import { CloudinaryService } from './services/cloudinary.service';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { ItemSupplier } from '../../settings/item-suppliers/entities/item-suppli
     ]),
   ],
   controllers: [ItemController],
-  providers: [ItemService],
+  providers: [ItemService, CloudinaryService],
   exports: [ItemService],
 })
 export class ItemModule {}

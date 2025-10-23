@@ -12,6 +12,10 @@ export class CreateItemDto {
   desc: string;
 
   @IsOptional()
+  @IsString()
+  imageUrl?: string | null;
+
+  @IsOptional()
   categoryId: number;
 
   @IsOptional()

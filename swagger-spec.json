@@ -472,7 +472,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "get": {
@@ -484,7 +484,126 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
+        ]
+      }
+    },
+    "/items/{id}/upload-image": {
+      "post": {
+        "description": "Upload an image for a product. Image is automatically optimized, resized to 800x800px max, and stored in Cloudinary CDN. Supported formats: JPEG, PNG, WebP. Max size: 5MB.",
+        "operationId": "ItemController_uploadItemImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Product image file",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file (JPEG, PNG, or WebP, max 5MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Image uploaded successfully"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "example": "https://res.cloudinary.com/demo/image/upload/v1234567890/inventory/products/abc123.jpg"
+                    },
+                    "item": {
+                      "type": "object",
+                      "description": "Updated item object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid file type or size"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Upload product image to Cloudinary",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
+    "/items/{id}/delete-image": {
+      "delete": {
+        "description": "Deletes the product image from Cloudinary CDN and removes the imageUrl from the database.",
+        "operationId": "ItemController_deleteItemImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Image deleted successfully"
+                    },
+                    "item": {
+                      "type": "object",
+                      "description": "Updated item object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Delete product image from Cloudinary",
+        "tags": [
+          "Items"
         ]
       }
     },
@@ -508,7 +627,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "get": {
@@ -520,7 +639,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -534,7 +653,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -548,7 +667,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -562,7 +681,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -585,7 +704,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "put": {
@@ -616,7 +735,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "delete": {
@@ -637,7 +756,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -661,7 +780,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "get": {
@@ -673,7 +792,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -696,7 +815,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "put": {
@@ -727,7 +846,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "delete": {
@@ -748,7 +867,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -772,7 +891,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "get": {
@@ -784,7 +903,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -807,7 +926,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "put": {
@@ -838,7 +957,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "delete": {
@@ -859,7 +978,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       }
     },
@@ -882,7 +1001,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "put": {
@@ -913,7 +1032,7 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
         ]
       },
       "delete": {
@@ -934,7 +1053,65 @@
           }
         },
         "tags": [
-          "Item"
+          "Items"
+        ]
+      }
+    },
+    "/items/{id}/image": {
+      "put": {
+        "description": "Manually set or update the product image URL. Use this if you have an image URL from an external source instead of uploading directly.",
+        "operationId": "ItemController_updateItemImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Image URL",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "imageUrl": {
+                    "type": "string",
+                    "example": "https://example.com/product-image.jpg",
+                    "description": "Full URL to the product image"
+                  }
+                },
+                "required": [
+                  "imageUrl"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image URL updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Update product image URL",
+        "tags": [
+          "Items"
         ]
       }
     },
@@ -2564,12 +2741,41 @@
     }
   },
   "info": {
-    "title": "Inventory System API",
-    "description": "API documentation for the inventory and accounting system",
+    "title": "Inventory Management System API",
+    "description": "Complete API documentation for the Inventory Management System with WhatsApp integration.\n\n## Features\n- 📦 **Inventory Management** - Products, stock, pricing, warehouses\n- 💰 **Sales & Expenses** - Track sales, expenses, and revenue\n- 👥 **Customer Management** - Customer records and history\n- 📱 **WhatsApp Integration** - Order via WhatsApp with product images\n- 📸 **Image Upload** - Cloudinary CDN integration with auto-optimization\n- 📊 **Reports & Analytics** - Business insights and metrics\n\n## Image Upload\nProducts support image uploads via Cloudinary CDN:\n- Auto-optimization and compression\n- Automatic resizing to 800x800px max\n- WebP format conversion for faster loading\n- Images display automatically in WhatsApp bot\n\n## WhatsApp Bot\nCustomers can order products directly via WhatsApp:\n- Browse products by category\n- View product images and prices\n- Add to cart and checkout\n- Track orders in real-time\n- Receive order status notifications\n      ",
     "version": "1.0",
-    "contact": {}
+    "contact": {
+      "name": "Support",
+      "url": "https://github.com/yourusername",
+      "email": "support@yourcompany.com"
+    }
   },
-  "tags": [],
+  "tags": [
+    {
+      "name": "Items",
+      "description": "Product/Item management and image uploads"
+    },
+    {
+      "name": "WhatsApp",
+      "description": "WhatsApp bot integration and order management"
+    },
+    {
+      "name": "Sales",
+      "description": "Sales transactions and analytics"
+    },
+    {
+      "name": "Customers",
+      "description": "Customer management"
+    },
+    {
+      "name": "Warehouses",
+      "description": "Warehouse management"
+    },
+    {
+      "name": "Reports",
+      "description": "Business reports and analytics"
+    }
+  ],
   "servers": [],
   "components": {
     "schemas": {
@@ -2622,6 +2828,10 @@
         "properties": {}
       },
       "UpdateItemDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "Item": {
         "type": "object",
         "properties": {}
       },
