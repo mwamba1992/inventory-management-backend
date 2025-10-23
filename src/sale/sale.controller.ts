@@ -15,6 +15,7 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { WhatsAppService } from './awarness.sales';
+import { SaleStatus } from './entities/sale.entity';
 
 @ApiTags('sales')
 @Controller('sales')
@@ -86,6 +87,21 @@ export class SaleController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.saleService.findOne(id);
+  }
+
+  /**
+   * Update sale status and send WhatsApp notification
+   * Used for manual/phone orders to notify customers
+   *
+   * Example request body:
+   * { "status": "confirmed" } or { "status": "ready" } or { "status": "delivered" }
+   */
+  @Put(':id/status')
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { status: SaleStatus },
+  ) {
+    return this.saleService.updateSaleStatus(id, body.status);
   }
 
   @Put(':id')

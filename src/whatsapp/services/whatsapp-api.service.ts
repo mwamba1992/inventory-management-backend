@@ -144,6 +144,56 @@ export class WhatsAppApiService {
     return this.sendMessage(payload);
   }
 
+  /**
+   * Send a WhatsApp message template
+   * Templates must be pre-approved by Meta
+   *
+   * @param to - Recipient phone number (with country code)
+   * @param templateName - Name of approved template (e.g., 'order_confirmation')
+   * @param languageCode - Language code (e.g., 'en')
+   * @param parameters - Array of parameter values for template variables
+   *
+   * Example:
+   * sendTemplateMessage('255123456789', 'order_confirmation', 'en', [
+   *   'John Doe',        // {{1}} - Customer name
+   *   'WA251023001',     // {{2}} - Order number
+   *   'Laptop x1',       // {{3}} - Items
+   *   '50000'            // {{4}} - Total
+   * ])
+   */
+  async sendTemplateMessage(
+    to: string,
+    templateName: string,
+    languageCode: string = 'en',
+    parameters: string[],
+  ): Promise<any> {
+    this.logger.log(`Sending template "${templateName}" to ${to}`);
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: {
+          code: languageCode,
+        },
+        components: [
+          {
+            type: 'body',
+            parameters: parameters.map((value) => ({
+              type: 'text',
+              text: value,
+            })),
+          },
+        ],
+      },
+    };
+
+    return this.sendMessage(payload);
+  }
+
   async markMessageAsRead(messageId: string): Promise<any> {
     try {
       const url = `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`;

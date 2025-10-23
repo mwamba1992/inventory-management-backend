@@ -8,6 +8,7 @@ import { SessionService } from './services/session.service';
 import { MessageHandlerService } from './services/message-handler.service';
 import { WhatsAppOrderService } from './services/whatsapp-order.service';
 import { AbandonedCartService } from './services/abandoned-cart.service';
+import { OrderNotificationService } from './services/order-notification.service';
 import { WhatsAppOrder } from './entities/whatsapp-order.entity';
 import { WhatsAppOrderItem } from './entities/whatsapp-order-item.entity';
 import { WhatsAppSession } from './entities/whatsapp-session.entity';
@@ -39,11 +40,13 @@ import { SaleModule } from '../sale/sale.module';
     MessageHandlerService,
     WhatsAppOrderService,
     AbandonedCartService,
+    OrderNotificationService,
   ],
   exports: [
     WhatsAppApiService,
     WhatsAppOrderService,
     SessionService,
+    OrderNotificationService,
   ],
 })
 export class WhatsAppModule {}

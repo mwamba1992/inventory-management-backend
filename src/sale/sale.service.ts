@@ -3,20 +3,26 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository, Between, MoreThan, LessThan } from 'typeorm';
-import { Sale } from './entities/sale.entity';
+import { Sale, SaleStatus } from './entities/sale.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { Customer } from '../settings/customer/entities/customer.entity';
 import { Item } from '../items/item/entities/item.entity';
 import { Warehouse } from '../settings/warehouse/entities/warehouse.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
+import { OrderNotificationService } from '../whatsapp/services/order-notification.service';
 
 
 @Injectable()
 export class SaleService {
+  private readonly logger = new Logger(SaleService.name);
+
   constructor(
     @InjectRepository(Sale)
     private readonly saleRepo: Repository<Sale>,
@@ -28,6 +34,8 @@ export class SaleService {
     private readonly wareHouseRepository: Repository<Warehouse>,
     @InjectRepository(ItemStock)
     private readonly itemStockRepo: Repository<ItemStock>,
+    @Inject(forwardRef(() => OrderNotificationService))
+    private readonly orderNotificationService: OrderNotificationService,
   ) {}
 
   // sale.service.ts
@@ -111,6 +119,68 @@ export class SaleService {
   async remove(id: number) {
     await this.findOne(id);
     await this.saleRepo.delete(id);
+  }
+
+  /**
+   * Update sale status and send WhatsApp template notification
+   * Used for manual/phone orders to notify customers about order status
+   */
+  async updateSaleStatus(id: number, status: SaleStatus): Promise<Sale> {
+    this.logger.log(`Updating sale ${id} status to ${status}`);
+
+    // Find sale with all relations
+    const sale = await this.saleRepo.findOne({
+      where: { id },
+      relations: ['customer', 'item', 'warehouseId'],
+    });
+
+    if (!sale) {
+      throw new NotFoundException('Sale not found');
+    }
+
+    const previousStatus = sale.status;
+    sale.status = status;
+
+    // Update deliveredAt timestamp when status changes to DELIVERED
+    if (status === SaleStatus.DELIVERED && !sale.deliveredAt) {
+      sale.deliveredAt = new Date();
+      this.logger.log(`Setting deliveredAt for sale ${id}`);
+    }
+
+    // Save the updated sale
+    const updatedSale = await this.saleRepo.save(sale);
+
+    // Send WhatsApp notification (template message)
+    try {
+      if (!sale.whatsappNotified) {
+        this.logger.log(
+          `Sending WhatsApp notification to ${sale.customer.phone} for sale ${id}`
+        );
+
+        const sent = await this.orderNotificationService.sendStatusNotification(
+          sale,
+          status,
+        );
+
+        if (sent) {
+          // Mark as notified
+          sale.whatsappNotified = true;
+          await this.saleRepo.save(sale);
+          this.logger.log(`Sale ${id} marked as WhatsApp notified`);
+        }
+      } else {
+        this.logger.log(`Sale ${id} already notified via WhatsApp, skipping notification`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send WhatsApp notification for sale ${id}: ${error.message}`,
+        error.stack
+      );
+      // Don't throw - notification failure shouldn't block status update
+    }
+
+    this.logger.log(`Sale ${id} status updated from ${previousStatus} to ${status}`);
+    return updatedSale;
   }
 
   async fetchRecentSales(limit: number = 10) {

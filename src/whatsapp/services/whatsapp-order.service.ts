@@ -14,6 +14,7 @@ import { CustomerService } from '../../settings/customer/customer.service';
 import { WarehouseService } from '../../settings/warehouse/warehouse.service';
 import { SaleService } from '../../sale/sale.service';
 import { WhatsAppApiService } from './whatsapp-api.service';
+import { OrderNotificationService } from './order-notification.service';
 
 @Injectable()
 export class WhatsAppOrderService {
@@ -29,6 +30,7 @@ export class WhatsAppOrderService {
     private readonly warehouseService: WarehouseService,
     private readonly saleService: SaleService,
     private readonly whatsappApi: WhatsAppApiService,
+    private readonly orderNotificationService: OrderNotificationService,
   ) {}
 
   async createOrder(dto: CreateWhatsAppOrderDto): Promise<WhatsAppOrder> {
@@ -217,9 +219,29 @@ export class WhatsAppOrderService {
     newStatus: OrderStatus,
   ): Promise<void> {
     try {
-      let message = '';
+      this.logger.log(
+        `Sending ${newStatus} notification to ${order.customerPhone} for order ${order.orderNumber}`
+      );
 
-      // Build order summary
+      // Try sending template message first (works outside 24-hour window)
+      const templateSent = await this.orderNotificationService.sendStatusNotification(
+        order,
+        newStatus,
+      );
+
+      if (templateSent) {
+        this.logger.log(
+          `Template message sent successfully for order ${order.orderNumber}`
+        );
+        return;
+      }
+
+      // Fallback: Send regular text message (only works within 24-hour window)
+      this.logger.log(
+        `Template failed or not configured, falling back to text message`
+      );
+
+      let message = '';
       const itemsList = order.items
         .map((item) => `• ${item.item.name} x${item.quantity} - TZS ${item.totalPrice}`)
         .join('\n');
@@ -272,9 +294,7 @@ export class WhatsAppOrderService {
 
       if (message) {
         await this.whatsappApi.sendTextMessage(order.customerPhone, message);
-        this.logger.log(
-          `Sent ${newStatus} notification to ${order.customerPhone} for order ${order.orderNumber}`
-        );
+        this.logger.log(`Text message sent successfully for order ${order.orderNumber}`);
       }
     } catch (error) {
       this.logger.error(
