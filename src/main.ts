@@ -2,6 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { writeFileSync } from 'fs';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as crypto from 'crypto';
+
+// Ensure crypto is available globally for @nestjs/schedule
+if (typeof global.crypto === 'undefined') {
+  (global as any).crypto = crypto;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
