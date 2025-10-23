@@ -594,16 +594,29 @@ export class MessageHandlerService {
       },
     );
 
-    await this.whatsappApi.sendTextMessage(
-      phoneNumber,
+    const productDetails =
       `✅ Product Found!\n\n` +
-        `📦 ${item.name}\n` +
-        `🔢 Code: ${item.code}\n` +
-        `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
-        `📊 Available: ${stock?.quantity || 0} units\n` +
-        `${item.desc ? `\n📝 ${item.desc}\n` : ''}\n` +
-        `Please enter the quantity you want to order (or type "cancel" to go back):`,
-    );
+      `📦 ${item.name}\n` +
+      `🔢 Code: ${item.code}\n` +
+      `💰 Price: TZS ${activePrice?.sellingPrice || 'N/A'}\n` +
+      `📊 Available: ${stock?.quantity || 0} units\n` +
+      `${item.desc ? `\n📝 ${item.desc}\n` : ''}\n` +
+      `Please enter the quantity you want to order (or type "cancel" to go back):`;
+
+    this.logger.log(`Product Code Entry - Item: ${item.name}, Has image: ${!!item.imageUrl}, Image URL: ${item.imageUrl || 'none'}`);
+
+    // Send image with caption if available, otherwise send text only
+    if (item.imageUrl) {
+      this.logger.log(`Sending product with image (code entry): ${item.name}`);
+      await this.whatsappApi.sendImageMessage(
+        phoneNumber,
+        item.imageUrl,
+        productDetails,
+      );
+    } else {
+      this.logger.log(`Sending product without image (code entry, text only): ${item.name}`);
+      await this.whatsappApi.sendTextMessage(phoneNumber, productDetails);
+    }
   }
 
   private async showCart(phoneNumber: string): Promise<void> {
