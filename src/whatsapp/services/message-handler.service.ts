@@ -198,6 +198,14 @@ export class MessageHandlerService {
         await this.showCart(phoneNumber);
         break;
 
+      case 'checkout':
+        await this.initiateCheckout(phoneNumber);
+        break;
+
+      case 'continue_shopping':
+        await this.showMainMenu(phoneNumber);
+        break;
+
       case 'track_order':
         await this.showOrderTracking(phoneNumber);
         break;
