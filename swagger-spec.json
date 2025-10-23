@@ -488,125 +488,6 @@
         ]
       }
     },
-    "/items/{id}/upload-image": {
-      "post": {
-        "description": "Upload an image for a product. Image is automatically optimized, resized to 800x800px max, and stored in Cloudinary CDN. Supported formats: JPEG, PNG, WebP. Max size: 5MB.",
-        "operationId": "ItemController_uploadItemImage",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Product/Item ID",
-            "schema": {
-              "example": 1,
-              "type": "number"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "description": "Product image file",
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "image": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "Image file (JPEG, PNG, or WebP, max 5MB)"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Image uploaded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Image uploaded successfully"
-                    },
-                    "imageUrl": {
-                      "type": "string",
-                      "example": "https://res.cloudinary.com/demo/image/upload/v1234567890/inventory/products/abc123.jpg"
-                    },
-                    "item": {
-                      "type": "object",
-                      "description": "Updated item object"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Invalid file type or size"
-          },
-          "404": {
-            "description": "Item not found"
-          }
-        },
-        "summary": "Upload product image to Cloudinary",
-        "tags": [
-          "Items"
-        ]
-      }
-    },
-    "/items/{id}/delete-image": {
-      "delete": {
-        "description": "Deletes the product image from Cloudinary CDN and removes the imageUrl from the database.",
-        "operationId": "ItemController_deleteItemImage",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Product/Item ID",
-            "schema": {
-              "example": 1,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Image deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Image deleted successfully"
-                    },
-                    "item": {
-                      "type": "object",
-                      "description": "Updated item object"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Item not found"
-          }
-        },
-        "summary": "Delete product image from Cloudinary",
-        "tags": [
-          "Items"
-        ]
-      }
-    },
     "/items/item-stocks": {
       "post": {
         "operationId": "ItemController_createItemStock",
@@ -982,6 +863,183 @@
         ]
       }
     },
+    "/items/{id}/upload-image": {
+      "post": {
+        "description": "Upload an image for a product. Image is automatically optimized, resized to 800x800px max, and stored in Cloudinary CDN. Supported formats: JPEG, PNG, WebP. Max size: 5MB.",
+        "operationId": "ItemController_uploadItemImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Product image file",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file (JPEG, PNG, or WebP, max 5MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Image uploaded successfully"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "example": "https://res.cloudinary.com/demo/image/upload/v1234567890/inventory/products/abc123.jpg"
+                    },
+                    "item": {
+                      "type": "object",
+                      "description": "Updated item object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid file type or size"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Upload product image to Cloudinary",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
+    "/items/{id}/image": {
+      "put": {
+        "description": "Manually set or update the product image URL. Use this if you have an image URL from an external source instead of uploading directly.",
+        "operationId": "ItemController_updateItemImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Image URL",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "imageUrl": {
+                    "type": "string",
+                    "example": "https://example.com/product-image.jpg",
+                    "description": "Full URL to the product image"
+                  }
+                },
+                "required": [
+                  "imageUrl"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image URL updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Update product image URL",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
+    "/items/{id}/delete-image": {
+      "delete": {
+        "description": "Deletes the product image from Cloudinary CDN and removes the imageUrl from the database.",
+        "operationId": "ItemController_deleteItemImage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Image deleted successfully"
+                    },
+                    "item": {
+                      "type": "object",
+                      "description": "Updated item object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Delete product image from Cloudinary",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
     "/items/{id}": {
       "get": {
         "operationId": "ItemController_findOne",
@@ -1052,64 +1110,6 @@
             "description": ""
           }
         },
-        "tags": [
-          "Items"
-        ]
-      }
-    },
-    "/items/{id}/image": {
-      "put": {
-        "description": "Manually set or update the product image URL. Use this if you have an image URL from an external source instead of uploading directly.",
-        "operationId": "ItemController_updateItemImage",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Product/Item ID",
-            "schema": {
-              "example": 1,
-              "type": "number"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "description": "Image URL",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "imageUrl": {
-                    "type": "string",
-                    "example": "https://example.com/product-image.jpg",
-                    "description": "Full URL to the product image"
-                  }
-                },
-                "required": [
-                  "imageUrl"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Image URL updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Item"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Item not found"
-          }
-        },
-        "summary": "Update product image URL",
         "tags": [
           "Items"
         ]
@@ -2827,11 +2827,11 @@
         "type": "object",
         "properties": {}
       },
-      "UpdateItemDto": {
+      "Item": {
         "type": "object",
         "properties": {}
       },
-      "Item": {
+      "UpdateItemDto": {
         "type": "object",
         "properties": {}
       },
