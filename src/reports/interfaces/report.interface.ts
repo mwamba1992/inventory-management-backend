@@ -97,3 +97,28 @@ export interface FinancialReport {
     endDate: string;
   };
 }
+
+export interface BalanceSheetReport {
+  assets: {
+    currentAssets: {
+      inventory: number;
+      cash: number;
+      total: number;
+    };
+    totalAssets: number;
+  };
+  liabilities: {
+    currentLiabilities: {
+      accountsPayable: number;
+      total: number;
+    };
+    totalLiabilities: number;
+  };
+  equity: {
+    ownersEquity: number;
+    retainedEarnings: number;
+    totalEquity: number;
+  };
+  totalLiabilitiesAndEquity: number;
+  asOfDate: string;
+}

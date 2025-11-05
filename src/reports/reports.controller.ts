@@ -6,6 +6,7 @@ import {
   CustomerReport,
   InventoryReport,
   FinancialReport,
+  BalanceSheetReport,
 } from './interfaces/report.interface';
 
 @Controller('reports')
@@ -54,5 +55,17 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
   ): Promise<FinancialReport> {
     return this.reportsService.getFinancialReport(filter);
+  }
+
+  /**
+   * Get balance sheet report
+   * GET /reports/balance-sheet?asOfDate=2024-12-31
+   */
+  @Get('balance-sheet')
+  async getBalanceSheet(
+    @Query('asOfDate') asOfDate?: string,
+  ): Promise<BalanceSheetReport> {
+    const date = asOfDate ? new Date(asOfDate) : undefined;
+    return this.reportsService.getBalanceSheet(date);
   }
 }

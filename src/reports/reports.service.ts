@@ -986,4 +986,205 @@ export class ReportsService {
 
     return breakdown;
   }
+
+  /**
+   * Get balance sheet report
+   * Shows company's financial position (Assets, Liabilities, Equity) as of a specific date
+   */
+  async getBalanceSheet(asOfDate?: Date): Promise<any> {
+    const reportDate = asOfDate || new Date();
+
+    // ========== ASSETS ==========
+
+    // 1. Calculate Inventory Value (Current Stock × Purchase Price)
+    const inventoryValue = await this.calculateInventoryValue();
+
+    // 2. Cash (placeholder - can be populated from cash records if tracked)
+    const cash = 0; // You can add cash tracking later
+
+    const currentAssets = {
+      inventory: Math.round(inventoryValue),
+      cash: Math.round(cash),
+      total: Math.round(inventoryValue + cash),
+    };
+
+    const totalAssets = currentAssets.total;
+
+    // ========== LIABILITIES ==========
+
+    // Accounts Payable (placeholder - can be calculated from supplier debts)
+    const accountsPayable = 0; // You can add supplier debt tracking later
+
+    const currentLiabilities = {
+      accountsPayable: Math.round(accountsPayable),
+      total: Math.round(accountsPayable),
+    };
+
+    const totalLiabilities = currentLiabilities.total;
+
+    // ========== EQUITY ==========
+
+    // Calculate Retained Earnings (Cumulative Profit/Loss up to reportDate)
+    const retainedEarnings = await this.calculateRetainedEarnings(reportDate);
+
+    // Owner's Equity (Initial Capital - calculated as balancing figure)
+    // Assets = Liabilities + Equity, so: Equity = Assets - Liabilities
+    const totalEquity = totalAssets - totalLiabilities;
+    const ownersEquity = totalEquity - retainedEarnings;
+
+    const equity = {
+      ownersEquity: Math.round(ownersEquity),
+      retainedEarnings: Math.round(retainedEarnings),
+      totalEquity: Math.round(totalEquity),
+    };
+
+    // Total Liabilities + Equity (should equal Total Assets)
+    const totalLiabilitiesAndEquity = totalLiabilities + equity.totalEquity;
+
+    return {
+      assets: {
+        currentAssets,
+        totalAssets: Math.round(totalAssets),
+      },
+      liabilities: {
+        currentLiabilities,
+        totalLiabilities: Math.round(totalLiabilities),
+      },
+      equity,
+      totalLiabilitiesAndEquity: Math.round(totalLiabilitiesAndEquity),
+      asOfDate: reportDate.toISOString().split('T')[0],
+    };
+  }
+
+  /**
+   * Calculate total inventory value (stock on hand × purchase price)
+   */
+  private async calculateInventoryValue(): Promise<number> {
+    const items = await this.itemRepository.find({
+      relations: ['stock', 'prices'],
+    });
+
+    let totalValue = 0;
+
+    for (const item of items) {
+      // Get active price
+      const activePrice = item.prices?.find((p) => p.isActive);
+      if (!activePrice) continue;
+
+      // Calculate cost per unit (purchase price + freight)
+      const costPerUnit =
+        Number(activePrice.purchaseAmount || 0) +
+        Number(activePrice.freightAmount || 0);
+
+      // Sum up stock across all warehouses
+      const totalStock = item.stock?.reduce(
+        (sum, stock) => sum + Number(stock.quantity || 0),
+        0,
+      ) || 0;
+
+      totalValue += costPerUnit * totalStock;
+    }
+
+    return totalValue;
+  }
+
+  /**
+   * Calculate retained earnings (cumulative profit/loss up to a date)
+   */
+  private async calculateRetainedEarnings(asOfDate: Date): Promise<number> {
+    // Get all revenue up to the date
+    const totalRevenue = await this.getTotalRevenueUpTo(asOfDate);
+
+    // Get all expenses up to the date (including COGS)
+    const totalExpenses = await this.getTotalExpensesUpTo(asOfDate);
+
+    // Retained Earnings = Revenue - Expenses
+    return totalRevenue - totalExpenses;
+  }
+
+  /**
+   * Get total revenue up to a specific date
+   */
+  private async getTotalRevenueUpTo(asOfDate: Date): Promise<number> {
+    // Regular sales
+    const salesResult = await this.saleRepository
+      .createQueryBuilder('sale')
+      .select('COALESCE(SUM(sale.amountPaid), 0)', 'total')
+      .where('sale.createdAt <= :asOfDate', { asOfDate })
+      .getRawOne();
+
+    // WhatsApp orders (delivered only)
+    const ordersResult = await this.whatsappOrderRepository
+      .createQueryBuilder('order')
+      .select('COALESCE(SUM(order.totalAmount), 0)', 'total')
+      .where('order.createdAt <= :asOfDate', { asOfDate })
+      .andWhere('order.status = :status', { status: 'delivered' })
+      .getRawOne();
+
+    return Number(salesResult?.total || 0) + Number(ordersResult?.total || 0);
+  }
+
+  /**
+   * Get total expenses up to a specific date (including COGS)
+   */
+  private async getTotalExpensesUpTo(asOfDate: Date): Promise<number> {
+    // Other expenses from expense table
+    const expensesResult = await this.expenseRepository
+      .createQueryBuilder('expense')
+      .select('COALESCE(SUM(expense.amount), 0)', 'total')
+      .where('expense.expenseDate <= :asOfDate', { asOfDate })
+      .getRawOne();
+
+    // COGS up to date
+    const cogs = await this.getCOGSUpTo(asOfDate);
+
+    return Number(expensesResult?.total || 0) + cogs;
+  }
+
+  /**
+   * Calculate COGS (Cost of Goods Sold) up to a specific date
+   */
+  private async getCOGSUpTo(asOfDate: Date): Promise<number> {
+    // COGS from regular sales
+    const salesWithPrices = await this.saleRepository
+      .createQueryBuilder('sale')
+      .leftJoin('sale.item', 'item')
+      .leftJoin('item.prices', 'price', 'price.isActive = :isActive', {
+        isActive: true,
+      })
+      .select('sale.quantity', 'quantity')
+      .addSelect('COALESCE(price.purchaseAmount, 0)', 'purchaseAmount')
+      .addSelect('COALESCE(price.freightAmount, 0)', 'freightAmount')
+      .where('sale.createdAt <= :asOfDate', { asOfDate })
+      .getRawMany();
+
+    const salesCOGS = salesWithPrices.reduce((total, sale) => {
+      const costPerUnit =
+        Number(sale.purchaseAmount) + Number(sale.freightAmount);
+      return total + costPerUnit * Number(sale.quantity);
+    }, 0);
+
+    // COGS from WhatsApp orders (delivered only)
+    const ordersWithPrices = await this.whatsappOrderItemRepository
+      .createQueryBuilder('orderItem')
+      .leftJoin('orderItem.order', 'order')
+      .leftJoin('orderItem.item', 'item')
+      .leftJoin('item.prices', 'price', 'price.isActive = :isActive', {
+        isActive: true,
+      })
+      .select('orderItem.quantity', 'quantity')
+      .addSelect('COALESCE(price.purchaseAmount, 0)', 'purchaseAmount')
+      .addSelect('COALESCE(price.freightAmount, 0)', 'freightAmount')
+      .where('order.createdAt <= :asOfDate', { asOfDate })
+      .andWhere('order.status = :status', { status: 'delivered' })
+      .getRawMany();
+
+    const ordersCOGS = ordersWithPrices.reduce((total, order) => {
+      const costPerUnit =
+        Number(order.purchaseAmount) + Number(order.freightAmount);
+      return total + costPerUnit * Number(order.quantity);
+    }, 0);
+
+    return salesCOGS + ordersCOGS;
+  }
 }

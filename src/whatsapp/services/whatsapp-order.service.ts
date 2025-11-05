@@ -105,7 +105,47 @@ export class WhatsAppOrderService {
     const savedOrder = await this.orderRepository.save(order);
     this.logger.log(`Order created successfully: ${orderNumber}`);
 
+    // Send admin notification about new order
+    await this.sendAdminNotification(savedOrder);
+
     return savedOrder;
+  }
+
+  /**
+   * Send notification to admin when new order is created
+   */
+  private async sendAdminNotification(order: WhatsAppOrder): Promise<void> {
+    try {
+      const adminPhone = process.env.ADMIN_PHONE_NUMBER || '255753107301';
+
+      // Build order summary
+      const itemsList = order.items
+        .map((item, index) =>
+          `${index + 1}. ${item.item.name}\n   Qty: ${item.quantity} × TZS ${item.unitPrice} = TZS ${item.totalPrice}`
+        )
+        .join('\n\n');
+
+      const message =
+        `🔔 *NEW ORDER RECEIVED!*\n\n` +
+        `📋 *Order #${order.orderNumber}*\n\n` +
+        `👤 *Customer:* ${order.customer?.name || 'Unknown'}\n` +
+        `📱 *Phone:* ${order.customerPhone}\n\n` +
+        `🛒 *Items:*\n${itemsList}\n\n` +
+        `💰 *Total Amount:* TZS ${order.totalAmount.toFixed(2)}\n\n` +
+        `📍 *Delivery Address:*\n${order.deliveryAddress || 'Not specified'}\n\n` +
+        `📝 *Notes:* ${order.notes || 'None'}\n\n` +
+        `⏰ *Ordered at:* ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' })}\n\n` +
+        `✅ Please confirm this order in the admin dashboard.`;
+
+      await this.whatsappApi.sendTextMessage(adminPhone, message);
+      this.logger.log(`Admin notification sent for order ${order.orderNumber}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send admin notification for order ${order.orderNumber}: ${error.message}`,
+        error.stack
+      );
+      // Don't throw - notification failure shouldn't block order creation
+    }
   }
 
   async findAll(): Promise<WhatsAppOrder[]> {

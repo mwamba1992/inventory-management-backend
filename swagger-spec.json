@@ -2761,6 +2761,29 @@
           "Reports"
         ]
       }
+    },
+    "/reports/balance-sheet": {
+      "get": {
+        "operationId": "ReportsController_getBalanceSheet",
+        "parameters": [
+          {
+            "name": "asOfDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
     }
   },
   "info": {
