@@ -19,12 +19,15 @@ import { Warehouse } from './settings/warehouse/entities/warehouse.entity';
 import { WarehouseModule } from './settings/warehouse/warehouse.module';
 import { ItemSupplier } from './settings/item-suppliers/entities/item-supplier.entity';
 import { ItemSuppliersModule } from './settings/item-suppliers/item-suppliers.module';
+import { ColorCategory } from './settings/color-category/entities/color-category.entity';
+import { ColorCategoryModule } from './settings/color-category/color-category.module';
 import { AuthModule } from './auth/auth.module';
 import { User } from './auth/user/entities/user.entity';
 import { Role } from './auth/role/entities/role.entity';
 import { Permission } from './auth/permission/entities/permission.entity';
 import { ItemPrice } from './items/item/entities/item-price.entity';
 import { ItemStock } from './items/item/entities/item-stock.entity';
+import { ItemStockDistribution } from './items/item/entities/item-stock-distribution.entity';
 import { ItemAccountMapping } from './items/item/entities/item-account-mapping.entity';
 import { CustomerModule } from './settings/customer/customer.module';
 import { Customer } from './settings/customer/entities/customer.entity';
@@ -61,8 +64,10 @@ import { ReportsModule } from './reports/reports.module';
         InventoryTransaction,
         Warehouse,
         ItemSupplier,
+        ColorCategory,
         ItemPrice,
         ItemStock,
+        ItemStockDistribution,
         ItemAccountMapping,
         User,
         Role,
@@ -88,6 +93,7 @@ import { ReportsModule } from './reports/reports.module';
     BusinessModule,
     WarehouseModule,
     ItemSuppliersModule,
+    ColorCategoryModule,
     CustomerModule,
     SaleModule,
     ExpenseModule,

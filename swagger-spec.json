@@ -1926,6 +1926,117 @@
         ]
       }
     },
+    "/color-categories": {
+      "post": {
+        "operationId": "ColorCategoryController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateColorCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ColorCategory"
+        ]
+      },
+      "get": {
+        "operationId": "ColorCategoryController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ColorCategory"
+        ]
+      }
+    },
+    "/color-categories/{id}": {
+      "get": {
+        "operationId": "ColorCategoryController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ColorCategory"
+        ]
+      },
+      "put": {
+        "operationId": "ColorCategoryController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateColorCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ColorCategory"
+        ]
+      },
+      "delete": {
+        "operationId": "ColorCategoryController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ColorCategory"
+        ]
+      }
+    },
     "/customers": {
       "post": {
         "operationId": "CustomerController_create",
@@ -2930,6 +3041,14 @@
         "properties": {}
       },
       "UpdateItemSupplierDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateColorCategoryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateColorCategoryDto": {
         "type": "object",
         "properties": {}
       },

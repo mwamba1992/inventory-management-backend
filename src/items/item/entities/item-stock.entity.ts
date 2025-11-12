@@ -1,7 +1,8 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from '../../../utils/base.entity';
 import { Item } from './item.entity';
 import { Warehouse } from '../../../settings/warehouse/entities/warehouse.entity';
+import { ItemStockDistribution } from './item-stock-distribution.entity';
 
 @Entity()
 export class ItemStock extends BaseEntity {
@@ -19,4 +20,7 @@ export class ItemStock extends BaseEntity {
 
   @Column({ nullable: true })
   reorderPoint: number;
+
+  @OneToMany(() => ItemStockDistribution, (distribution) => distribution.itemStock)
+  distributions: ItemStockDistribution[];
 }

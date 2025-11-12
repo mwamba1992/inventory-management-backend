@@ -13,11 +13,15 @@ import { UpdateItemPriceDto } from './dto/update-item-price.dto';
 import { ItemStock } from './entities/item-stock.entity';
 import { CreateItemStockDto } from './dto/create-item-stock.dto';
 import { UpdateItemStockDto } from './dto/update-item-stock.dto';
+import { ItemStockDistribution } from './entities/item-stock-distribution.entity';
+import { CreateItemStockDistributionDto } from './dto/create-item-stock-distribution.dto';
+import { UpdateItemStockDistributionDto } from './dto/update-item-stock-distribution.dto';
 import { ItemAccountMapping } from './entities/item-account-mapping.entity';
 import { CreateItemAccountMappingDto } from './dto/create-item-account-mapping.dto';
 import { UpdateItemAccountMappingDto } from './dto/update-item-account-mapping.dto';
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
+import { ColorCategory } from '../../settings/color-category/entities/color-category.entity';
 
 @Injectable()
 export class ItemService {
@@ -34,12 +38,16 @@ export class ItemService {
     private readonly itemPriceRepository: Repository<ItemPrice>,
     @InjectRepository(ItemStock)
     private readonly itemStockRepository: Repository<ItemStock>,
+    @InjectRepository(ItemStockDistribution)
+    private readonly itemStockDistributionRepository: Repository<ItemStockDistribution>,
     @InjectRepository(ItemAccountMapping)
     private readonly itemAccountMappingRepository: Repository<ItemAccountMapping>,
     @InjectRepository(Warehouse)
     private readonly wareHouseRepository: Repository<Warehouse>,
     @InjectRepository(ItemSupplier)
     private readonly itemSupplierRepository: Repository<ItemSupplier>,
+    @InjectRepository(ColorCategory)
+    private readonly colorCategoryRepository: Repository<ColorCategory>,
   ) {}
 
   async create(createItemDto: CreateItemDto): Promise<Item> {
@@ -184,6 +192,7 @@ export class ItemService {
       where: { id: createItemStockDto.warehouseId },
     });
     if (!warehouse) throw new Error('Warehouse not found');
+
     const itemStock = this.itemStockRepository.create({
       ...createItemStockDto,
       item,
@@ -193,13 +202,13 @@ export class ItemService {
   }
 
   async findAllItemStocks(): Promise<ItemStock[]> {
-    return this.itemStockRepository.find({ relations: ['item', 'warehouse'] });
+    return this.itemStockRepository.find({ relations: ['item', 'warehouse', 'distributions', 'distributions.colorCategory'] });
   }
 
   async findOneItemStock(id: number): Promise<ItemStock> {
     const itemStock = await this.itemStockRepository.findOne({
       where: { id },
-      relations: ['item', 'warehouse'],
+      relations: ['item', 'warehouse', 'distributions', 'distributions.colorCategory'],
     });
     if (!itemStock) throw new Error('ItemStock not found');
     return itemStock;
@@ -231,6 +240,79 @@ export class ItemService {
 
   async removeItemStock(id: number): Promise<void> {
     await this.itemStockRepository.delete(id);
+  }
+
+  async createItemStockDistribution(
+    createDto: CreateItemStockDistributionDto,
+  ): Promise<ItemStockDistribution> {
+    const itemStock = await this.itemStockRepository.findOne({
+      where: { id: createDto.itemStockId },
+    });
+    if (!itemStock) throw new Error('ItemStock not found');
+
+    let colorCategory: ColorCategory | undefined = undefined;
+    if (createDto.colorCategoryId) {
+      const foundColorCategory = await this.colorCategoryRepository.findOne({
+        where: { id: createDto.colorCategoryId },
+      });
+      if (!foundColorCategory) throw new Error('Color category not found');
+      colorCategory = foundColorCategory;
+    }
+
+    const distribution = this.itemStockDistributionRepository.create({
+      itemStock,
+      colorCategory,
+      quantity: createDto.quantity,
+    });
+    return this.itemStockDistributionRepository.save(distribution);
+  }
+
+  async findAllItemStockDistributions(): Promise<ItemStockDistribution[]> {
+    return this.itemStockDistributionRepository.find({
+      relations: ['itemStock', 'itemStock.item', 'colorCategory'],
+    });
+  }
+
+  async findOneItemStockDistribution(id: number): Promise<ItemStockDistribution> {
+    const distribution = await this.itemStockDistributionRepository.findOne({
+      where: { id },
+      relations: ['itemStock', 'itemStock.item', 'colorCategory'],
+    });
+    if (!distribution) throw new Error('ItemStockDistribution not found');
+    return distribution;
+  }
+
+  async updateItemStockDistribution(
+    id: number,
+    updateDto: UpdateItemStockDistributionDto,
+  ): Promise<ItemStockDistribution> {
+    const distribution = await this.itemStockDistributionRepository.findOne({
+      where: { id },
+    });
+    if (!distribution) throw new Error('ItemStockDistribution not found');
+
+    if (updateDto.itemStockId) {
+      const itemStock = await this.itemStockRepository.findOne({
+        where: { id: updateDto.itemStockId },
+      });
+      if (!itemStock) throw new Error('ItemStock not found');
+      distribution.itemStock = itemStock;
+    }
+
+    if (updateDto.colorCategoryId) {
+      const colorCategory = await this.colorCategoryRepository.findOne({
+        where: { id: updateDto.colorCategoryId },
+      });
+      if (!colorCategory) throw new Error('Color category not found');
+      distribution.colorCategory = colorCategory;
+    }
+
+    Object.assign(distribution, updateDto);
+    return this.itemStockDistributionRepository.save(distribution);
+  }
+
+  async removeItemStockDistribution(id: number): Promise<void> {
+    await this.itemStockDistributionRepository.delete(id);
   }
 
   async createItemAccountMapping(
