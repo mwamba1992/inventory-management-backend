@@ -641,6 +641,127 @@
         ]
       }
     },
+    "/items/item-stock-distributions": {
+      "post": {
+        "description": "Create a color distribution for an item stock. Use this to track how many units of each color are in a specific warehouse stock.",
+        "operationId": "ItemController_createItemStockDistribution",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItemStockDistributionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create item stock distribution (Add color to stock)",
+        "tags": [
+          "Items"
+        ]
+      },
+      "get": {
+        "description": "Retrieve all color distributions across all item stocks.",
+        "operationId": "ItemController_findAllItemStockDistributions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all item stock distributions",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
+    "/items/item-stock-distributions/{id}": {
+      "get": {
+        "description": "Retrieve a specific color distribution by ID.",
+        "operationId": "ItemController_findOneItemStockDistribution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get single item stock distribution",
+        "tags": [
+          "Items"
+        ]
+      },
+      "put": {
+        "description": "Update a color distribution (e.g., adjust quantity for a specific color).",
+        "operationId": "ItemController_updateItemStockDistribution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemStockDistributionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update item stock distribution",
+        "tags": [
+          "Items"
+        ]
+      },
+      "delete": {
+        "description": "Remove a color distribution from an item stock.",
+        "operationId": "ItemController_removeItemStockDistribution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete item stock distribution",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
     "/items/account-mappings": {
       "post": {
         "operationId": "ItemController_createItemAccountMapping",
@@ -2965,6 +3086,14 @@
         "properties": {}
       },
       "UpdateItemStockDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateItemStockDistributionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateItemStockDistributionDto": {
         "type": "object",
         "properties": {}
       },

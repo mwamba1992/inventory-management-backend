@@ -34,6 +34,9 @@ import { ItemStock } from './entities/item-stock.entity';
 import { CreateItemAccountMappingDto } from './dto/create-item-account-mapping.dto';
 import { UpdateItemAccountMappingDto } from './dto/update-item-account-mapping.dto';
 import { ItemAccountMapping } from './entities/item-account-mapping.entity';
+import { CreateItemStockDistributionDto } from './dto/create-item-stock-distribution.dto';
+import { UpdateItemStockDistributionDto } from './dto/update-item-stock-distribution.dto';
+import { ItemStockDistribution } from './entities/item-stock-distribution.entity';
 import { CloudinaryService } from './services/cloudinary.service';
 
 @ApiTags('Items')
@@ -103,6 +106,61 @@ export class ItemController {
   @Delete('item-stocks/:id')
   async removeItemStock(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.itemService.removeItemStock(id);
+  }
+
+  // ========== ITEM STOCK DISTRIBUTION CRUD (Color Management) ==========
+  @Post('item-stock-distributions')
+  @ApiOperation({
+    summary: 'Create item stock distribution (Add color to stock)',
+    description: 'Create a color distribution for an item stock. Use this to track how many units of each color are in a specific warehouse stock.'
+  })
+  async createItemStockDistribution(
+    @Body() createDto: CreateItemStockDistributionDto,
+  ): Promise<ItemStockDistribution> {
+    return this.itemService.createItemStockDistribution(createDto);
+  }
+
+  @Get('item-stock-distributions')
+  @ApiOperation({
+    summary: 'Get all item stock distributions',
+    description: 'Retrieve all color distributions across all item stocks.'
+  })
+  async findAllItemStockDistributions(): Promise<ItemStockDistribution[]> {
+    return this.itemService.findAllItemStockDistributions();
+  }
+
+  @Get('item-stock-distributions/:id')
+  @ApiOperation({
+    summary: 'Get single item stock distribution',
+    description: 'Retrieve a specific color distribution by ID.'
+  })
+  async findOneItemStockDistribution(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ItemStockDistribution> {
+    return this.itemService.findOneItemStockDistribution(id);
+  }
+
+  @Put('item-stock-distributions/:id')
+  @ApiOperation({
+    summary: 'Update item stock distribution',
+    description: 'Update a color distribution (e.g., adjust quantity for a specific color).'
+  })
+  async updateItemStockDistribution(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateItemStockDistributionDto,
+  ): Promise<ItemStockDistribution> {
+    return this.itemService.updateItemStockDistribution(id, updateDto);
+  }
+
+  @Delete('item-stock-distributions/:id')
+  @ApiOperation({
+    summary: 'Delete item stock distribution',
+    description: 'Remove a color distribution from an item stock.'
+  })
+  async removeItemStockDistribution(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<void> {
+    return this.itemService.removeItemStockDistribution(id);
   }
 
   // ========== ITEM ACCOUNT MAPPING CRUD ==========
