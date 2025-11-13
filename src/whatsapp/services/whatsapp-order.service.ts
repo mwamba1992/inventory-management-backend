@@ -6,9 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { WhatsAppOrder, OrderStatus } from '../entities/whatsapp-order.entity';
+import { WhatsAppOrder, OrderStatus, OrderSource, PaymentMethod, PaymentStatus } from '../entities/whatsapp-order.entity';
 import { WhatsAppOrderItem } from '../entities/whatsapp-order-item.entity';
 import { CreateWhatsAppOrderDto } from '../dto/create-order.dto';
+import { CreateEcommerceOrderDto } from '../dto/create-ecommerce-order.dto';
 import { ItemService } from '../../items/item/item.service';
 import { CustomerService } from '../../settings/customer/customer.service';
 import { WarehouseService } from '../../settings/warehouse/warehouse.service';
@@ -104,6 +105,107 @@ export class WhatsAppOrderService {
 
     const savedOrder = await this.orderRepository.save(order);
     this.logger.log(`Order created successfully: ${orderNumber}`);
+
+    // Send admin notification about new order
+    await this.sendAdminNotification(savedOrder);
+
+    return savedOrder;
+  }
+
+  /**
+   * Create e-commerce order from website
+   */
+  async createEcommerceOrder(dto: CreateEcommerceOrderDto): Promise<WhatsAppOrder> {
+    this.logger.log(`Creating e-commerce order for ${dto.customerPhone}`);
+
+    // Validate warehouse
+    const warehouse = await this.warehouseService.findOne(dto.warehouseId);
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+
+    // Find or create customer with all details
+    const customers = await this.customerService.findAll();
+    let customer = customers.find((c) => c.phone === dto.customerPhone);
+
+    if (!customer) {
+      // Create new customer with e-commerce details
+      customer = await this.customerService.create({
+        name: dto.customerName,
+        phone: dto.customerPhone,
+        email: dto.customerEmail,
+        city: dto.customerCity,
+        region: dto.customerRegion,
+      });
+      this.logger.log(`Created new customer: ${customer.name}`);
+    } else {
+      // Update existing customer if new information is provided
+      const updateData: any = {};
+      if (dto.customerEmail && !customer.email) updateData.email = dto.customerEmail;
+      if (dto.customerCity && !customer.city) updateData.city = dto.customerCity;
+      if (dto.customerRegion && !customer.region) updateData.region = dto.customerRegion;
+
+      if (Object.keys(updateData).length > 0) {
+        customer = await this.customerService.update(customer.id, updateData);
+        this.logger.log(`Updated customer ${customer.id} with e-commerce details`);
+      }
+    }
+
+    // Validate items and calculate total
+    const orderItems: WhatsAppOrderItem[] = [];
+    let totalAmount = 0;
+
+    for (const itemDto of dto.items) {
+      const item = await this.itemService.findOne(itemDto.itemId);
+      if (!item) {
+        throw new NotFoundException(`Item with ID ${itemDto.itemId} not found`);
+      }
+
+      // Check stock availability (but don't deduct yet - will deduct on confirmation/delivery)
+      const itemStock = item.stock?.find((s) => s.warehouse?.id === warehouse.id);
+      if (!itemStock || itemStock.quantity < itemDto.quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for ${item.name}. Available: ${itemStock?.quantity || 0}, Requested: ${itemDto.quantity}`,
+        );
+      }
+
+      const unitPrice = itemDto.unitPrice;
+      const totalPrice = unitPrice * itemDto.quantity;
+      totalAmount += totalPrice;
+
+      const orderItem = this.orderItemRepository.create({
+        item,
+        quantity: itemDto.quantity,
+        unitPrice,
+        totalPrice,
+      });
+
+      orderItems.push(orderItem);
+
+      this.logger.log(`Added ${itemDto.quantity} units of ${item.name} to order`);
+    }
+
+    // Generate order number with EC prefix for e-commerce
+    const orderNumber = await this.generateEcommerceOrderNumber();
+
+    // Create order
+    const order = this.orderRepository.create({
+      orderNumber,
+      customerPhone: dto.customerPhone,
+      customer,
+      warehouse,
+      items: orderItems,
+      totalAmount,
+      status: OrderStatus.PENDING,
+      orderSource: OrderSource.ECOMMERCE,
+      paymentMethod: dto.paymentMethod || null,
+      paymentStatus: PaymentStatus.PENDING,
+      deliveryAddress: dto.deliveryAddress,
+      notes: dto.notes,
+    });
+
+    const savedOrder = await this.orderRepository.save(order);
+    this.logger.log(`E-commerce order created successfully: ${orderNumber}`);
 
     // Send admin notification about new order
     await this.sendAdminNotification(savedOrder);
@@ -368,6 +470,27 @@ export class WhatsAppOrderService {
 
   private async generateOrderNumber(): Promise<string> {
     const prefix = 'WA';
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+
+    // Get count of orders today
+    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+
+    const todayOrdersCount = await this.orderRepository.count({
+      where: {
+        createdAt: Between(startOfDay, endOfDay),
+      },
+    });
+
+    const sequence = (todayOrdersCount + 1).toString().padStart(4, '0');
+    return `${prefix}${year}${month}${day}${sequence}`;
+  }
+
+  private async generateEcommerceOrderNumber(): Promise<string> {
+    const prefix = 'EC';
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');

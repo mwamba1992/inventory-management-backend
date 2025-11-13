@@ -12,6 +12,27 @@ export enum OrderStatus {
   CANCELLED = 'cancelled',
 }
 
+export enum OrderSource {
+  WHATSAPP = 'whatsapp',
+  ECOMMERCE = 'ecommerce',
+  POS = 'pos',
+  PHONE = 'phone',
+}
+
+export enum PaymentMethod {
+  CASH = 'cash',
+  MOBILE_MONEY = 'mobile_money',
+  BANK_TRANSFER = 'bank_transfer',
+  CARD = 'card',
+}
+
+export enum PaymentStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+}
+
 @Entity('whatsapp_orders')
 export class WhatsAppOrder {
   @PrimaryGeneratedColumn()
@@ -43,6 +64,27 @@ export class WhatsAppOrder {
     default: OrderStatus.PENDING,
   })
   status: OrderStatus;
+
+  @Column({
+    type: 'enum',
+    enum: OrderSource,
+    default: OrderSource.WHATSAPP,
+  })
+  orderSource: OrderSource;
+
+  @Column({
+    type: 'enum',
+    enum: PaymentMethod,
+    nullable: true,
+  })
+  paymentMethod: PaymentMethod | null;
+
+  @Column({
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+  })
+  paymentStatus: PaymentStatus;
 
   @Column({ type: 'text', nullable: true })
   notes: string;

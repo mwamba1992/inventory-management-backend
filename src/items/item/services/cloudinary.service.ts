@@ -32,13 +32,18 @@ export class CloudinaryService {
         {
           folder,
           resource_type: 'auto',
-          // Optimization options
+          // Standardized transformation for consistent product images
           transformation: [
             {
-              width: 800,
-              height: 800,
-              crop: 'limit', // Don't upscale, only downscale if larger
-              quality: 'auto:good',
+              width: 1500,
+              height: 1500,
+              crop: 'pad', // Add padding to maintain aspect ratio
+              background: 'white', // White background for padding
+            },
+            {
+              quality: 'auto:good', // Automatic quality optimization
+            },
+            {
               fetch_format: 'auto', // Automatically choose best format (WebP, etc)
             },
           ],

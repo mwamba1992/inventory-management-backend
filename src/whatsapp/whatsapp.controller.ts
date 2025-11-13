@@ -15,6 +15,7 @@ import { MessageHandlerService } from './services/message-handler.service';
 import { WhatsAppOrderService } from './services/whatsapp-order.service';
 import { WhatsAppMessageDto, WebhookVerificationDto } from './dto/webhook.dto';
 import { OrderStatus } from './entities/whatsapp-order.entity';
+import { CreateEcommerceOrderDto } from './dto/create-ecommerce-order.dto';
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
@@ -120,6 +121,49 @@ export class WhatsAppController {
       // Return 200 to prevent WhatsApp from retrying
       return { status: 'error', message: error.message };
     }
+  }
+
+  /**
+   * Create e-commerce order from website
+   */
+  @Post('ecommerce-order')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create e-commerce order',
+    description: 'Create an order from the e-commerce website. This endpoint accepts customer information, order items, and payment details. The order will be created with PENDING status and inventory will NOT be deducted until admin confirms the order.'
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Order created successfully. Returns the created order with order number (e.g., EC2501130001)'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid data or insufficient stock'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Item or warehouse not found'
+  })
+  async createEcommerceOrder(@Body() dto: CreateEcommerceOrderDto) {
+    this.logger.log(`Received e-commerce order from ${dto.customerName}`);
+    const order = await this.orderService.createEcommerceOrder(dto);
+
+    return {
+      success: true,
+      message: 'Order placed successfully! You will receive confirmation shortly.',
+      order: {
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        estimatedDelivery: '2-3 business days',
+        items: order.items.map(item => ({
+          name: item.item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })),
+      },
+    };
   }
 
   /**
