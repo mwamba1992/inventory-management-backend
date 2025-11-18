@@ -103,6 +103,7 @@ export class ItemService {
         'business',
         'prices',
         'stock',
+        'stock.warehouse',
       ],
       order: { createdAt: 'DESC' },
     });
@@ -119,6 +120,7 @@ export class ItemService {
         'business',
         'prices',
         'stock',
+        'stock.warehouse',
       ],
     });
 
