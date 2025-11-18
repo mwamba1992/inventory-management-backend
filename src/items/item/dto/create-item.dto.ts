@@ -24,6 +24,9 @@ export class CreateItemDto {
   categoryId: number;
 
   @IsOptional()
+  subcategoryId: number;
+
+  @IsOptional()
   warehouseId: number;
 
   @IsOptional()

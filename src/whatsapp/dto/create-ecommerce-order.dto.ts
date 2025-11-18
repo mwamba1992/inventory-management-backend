@@ -71,9 +71,9 @@ export class CreateEcommerceOrderDto {
 
   // Payment Information
   @ApiProperty({
-    description: 'Payment method',
+    description: 'Payment method (defaults to Cash on Delivery)',
     enum: PaymentMethod,
-    example: PaymentMethod.MOBILE_MONEY,
+    example: PaymentMethod.CASH_ON_DELIVERY,
     required: false
   })
   @IsEnum(PaymentMethod)

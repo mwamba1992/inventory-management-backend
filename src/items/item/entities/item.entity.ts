@@ -47,6 +47,9 @@ export class Item extends BaseEntity {
   @ManyToOne(() => Common, (category) => category.items, { nullable: true })
   category: Common;
 
+  @ManyToOne(() => Common, { nullable: true })
+  subcategory: Common;
+
   @ManyToOne(() => Warehouse, (warehouse) => warehouse.items, { nullable: true })
   warehouse: Warehouse;
 

@@ -148,21 +148,55 @@ export class WhatsAppController {
     this.logger.log(`Received e-commerce order from ${dto.customerName}`);
     const order = await this.orderService.createEcommerceOrder(dto);
 
+    // Get customer's order history (including the new order)
+    const customerOrders = await this.orderService.findByPhone(dto.customerPhone);
+
     return {
       success: true,
       message: 'Order placed successfully! You will receive confirmation shortly.',
       order: {
+        id: order.id,
         orderNumber: order.orderNumber,
         totalAmount: order.totalAmount,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        orderSource: order.orderSource,
         estimatedDelivery: '2-3 business days',
+        deliveryAddress: order.deliveryAddress,
+        notes: order.notes,
+        createdAt: order.createdAt,
         items: order.items.map(item => ({
+          id: item.id,
           name: item.item.name,
+          code: item.item.code,
+          imageUrl: item.item.imageUrl,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
         })),
       },
+      customerOrders: customerOrders.map(o => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        totalAmount: o.totalAmount,
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        paymentMethod: o.paymentMethod,
+        orderSource: o.orderSource,
+        deliveryAddress: o.deliveryAddress,
+        createdAt: o.createdAt,
+        confirmedAt: o.confirmedAt,
+        deliveredAt: o.deliveredAt,
+        items: o.items.map(item => ({
+          name: item.item.name,
+          code: item.item.code,
+          imageUrl: item.item.imageUrl,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })),
+      })),
     };
   }
 

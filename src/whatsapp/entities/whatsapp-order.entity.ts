@@ -20,7 +20,7 @@ export enum OrderSource {
 }
 
 export enum PaymentMethod {
-  CASH = 'cash',
+  CASH_ON_DELIVERY = 'cash_on_delivery',
   MOBILE_MONEY = 'mobile_money',
   BANK_TRANSFER = 'bank_transfer',
   CARD = 'card',

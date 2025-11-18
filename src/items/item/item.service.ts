@@ -69,6 +69,12 @@ export class ItemService {
       });
     }
 
+    if (createItemDto.subcategoryId) {
+      item.subcategory = await this.commonRepository.findOneByOrFail({
+        id: createItemDto.subcategoryId,
+      });
+    }
+
     if (createItemDto.warehouseId) {
       item.warehouse = await this.wareHouseRepository.findOneByOrFail({
         id: createItemDto.warehouseId,
@@ -91,6 +97,7 @@ export class ItemService {
     return this.itemRepository.find({
       relations: [
         'category',
+        'subcategory',
         'warehouse',
         'supplier',
         'business',
@@ -106,6 +113,7 @@ export class ItemService {
       where: { id },
       relations: [
         'category',
+        'subcategory',
         'warehouse',
         'supplier',
         'business',

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsNotEmpty, IsString, Length, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateCommonDto {
 
@@ -16,4 +16,8 @@ export class CreateCommonDto {
   @IsNotEmpty()
   @Length(1, 100)
   readonly type: string;
+
+  @IsOptional()
+  @IsNumber()
+  readonly parentCategoryId?: number;
 }

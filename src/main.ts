@@ -11,7 +11,20 @@ if (typeof global.crypto === 'undefined') {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+
+  // Enable CORS with specific configuration for frontend
+  app.enableCors({
+    origin: [
+      'https://store.mwendavano.com',
+      'https://business.mwendavano.com',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true,
+  });
 
   // Swagger configuration
   const config = new DocumentBuilder()

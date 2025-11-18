@@ -38,4 +38,19 @@ export class CommonController {
   getByType(@Param('type') type: string) {
     return this.commonService.getByType(type);
   }
+
+  @Get('root-categories')
+  getRootCategories() {
+    return this.commonService.getRootCategories();
+  }
+
+  @Get(':id/subcategories')
+  getSubcategories(@Param('id') id: string) {
+    return this.commonService.getSubcategories(+id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.commonService.findOne(+id);
+  }
 }
