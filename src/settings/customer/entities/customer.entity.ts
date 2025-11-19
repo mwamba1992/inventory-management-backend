@@ -15,7 +15,7 @@ export class Customer {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ unique: true })
   phone: string;
 
   @Column({ nullable: true })
@@ -26,6 +26,12 @@ export class Customer {
 
   @Column({ nullable: true })
   region: string;
+
+  @Column({ nullable: true })
+  password: string;
+
+  @Column({ default: false })
+  hasPassword: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

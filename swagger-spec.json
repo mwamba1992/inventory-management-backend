@@ -1546,6 +1546,27 @@
         "tags": [
           "Common"
         ]
+      },
+      "get": {
+        "operationId": "CommonController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Common"
+        ]
       }
     },
     "/common/type/{type}": {
@@ -1554,6 +1575,43 @@
         "parameters": [
           {
             "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Common"
+        ]
+      }
+    },
+    "/common/root-categories": {
+      "get": {
+        "operationId": "CommonController_getRootCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Common"
+        ]
+      }
+    },
+    "/common/{id}/subcategories": {
+      "get": {
+        "operationId": "CommonController_getSubcategories",
+        "parameters": [
+          {
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -2283,6 +2341,476 @@
         ]
       }
     },
+    "/customer-auth/register": {
+      "post": {
+        "description": "Create a new customer account with phone and password. Returns JWT token for authentication.",
+        "operationId": "CustomerAuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerRegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer registered successfully"
+          },
+          "409": {
+            "description": "Customer already exists"
+          }
+        },
+        "summary": "Register a new customer",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/login": {
+      "post": {
+        "description": "Login with phone number and password. Returns JWT token.",
+        "operationId": "CustomerAuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "summary": "Login customer",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/set-password": {
+      "post": {
+        "description": "For customers who placed orders via checkout but never set a password. They can use this to set their password and start logging in.",
+        "operationId": "CustomerAuthController_setPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password set successfully"
+          },
+          "400": {
+            "description": "Password already set"
+          },
+          "404": {
+            "description": "Customer not found"
+          }
+        },
+        "summary": "Set password for existing customer",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/me": {
+      "get": {
+        "description": "Get the logged-in customer's profile information. Requires authentication.",
+        "operationId": "CustomerAuthController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get customer profile",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/profile": {
+      "put": {
+        "description": "Update the logged-in customer's profile (name, email, city, region). Requires authentication.",
+        "operationId": "CustomerAuthController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer profile",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/change-password": {
+      "post": {
+        "description": "Change password for the logged-in customer. Requires current password. Requires authentication.",
+        "operationId": "CustomerAuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          },
+          "401": {
+            "description": "Current password is incorrect"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change customer password",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/orders": {
+      "get": {
+        "description": "Get all orders for the logged-in customer, sorted by newest first. Requires authentication.",
+        "operationId": "CustomerAuthController_getOrders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Orders retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get customer orders",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/customer-auth/orders/stats": {
+      "get": {
+        "description": "Get order statistics for the logged-in customer (total orders, total spent, etc.). Requires authentication.",
+        "operationId": "CustomerAuthController_getOrderStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Stats retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get customer order statistics",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
+    "/whatsapp/webhook": {
+      "get": {
+        "operationId": "WhatsAppController_verifyWebhook",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Webhook verified successfully"
+          },
+          "403": {
+            "description": "Invalid verification token"
+          }
+        },
+        "summary": "Verify WhatsApp webhook",
+        "tags": [
+          "WhatsApp"
+        ]
+      },
+      "post": {
+        "operationId": "WhatsAppController_receiveMessage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatsAppMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message processed successfully"
+          }
+        },
+        "summary": "Receive WhatsApp messages",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/ecommerce-order": {
+      "post": {
+        "description": "Create an order from the e-commerce website. This endpoint accepts customer information, order items, and payment details. The order will be created with PENDING status and inventory will NOT be deducted until admin confirms the order.",
+        "operationId": "WhatsAppController_createEcommerceOrder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEcommerceOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created successfully. Returns the created order with order number (e.g., EC2501130001)"
+          },
+          "400": {
+            "description": "Bad request - Invalid data or insufficient stock"
+          },
+          "404": {
+            "description": "Item or warehouse not found"
+          }
+        },
+        "summary": "Create e-commerce order",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders": {
+      "get": {
+        "operationId": "WhatsAppController_getAllOrders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns all orders"
+          }
+        },
+        "summary": "Get all WhatsApp orders",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/{id}": {
+      "get": {
+        "operationId": "WhatsAppController_getOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the order"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        },
+        "summary": "Get order by ID",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/phone/{phone}": {
+      "get": {
+        "operationId": "WhatsAppController_getOrdersByPhone",
+        "parameters": [
+          {
+            "name": "phone",
+            "required": true,
+            "in": "path",
+            "description": "Customer phone number",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns customer orders"
+          }
+        },
+        "summary": "Get orders by customer phone number",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/{id}/status": {
+      "put": {
+        "operationId": "WhatsAppController_updateOrderStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order status updated"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        },
+        "summary": "Update order status",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/orders/{id}/cancel": {
+      "put": {
+        "operationId": "WhatsAppController_cancelOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order cancelled successfully"
+          },
+          "400": {
+            "description": "Cannot cancel delivered order"
+          },
+          "404": {
+            "description": "Order not found"
+          }
+        },
+        "summary": "Cancel order",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/stats/orders": {
+      "get": {
+        "operationId": "WhatsAppController_getOrderStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns order statistics"
+          }
+        },
+        "summary": "Get order statistics",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
+    "/whatsapp/product-link/{itemId}": {
+      "get": {
+        "operationId": "WhatsAppController_generateProductLink",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Product/Item ID",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns WhatsApp link"
+          }
+        },
+        "summary": "Generate WhatsApp click-to-chat link for a product",
+        "tags": [
+          "WhatsApp"
+        ]
+      }
+    },
     "/sales": {
       "post": {
         "operationId": "SaleController_create",
@@ -2557,214 +3085,6 @@
         },
         "tags": [
           "sales"
-        ]
-      }
-    },
-    "/whatsapp/webhook": {
-      "get": {
-        "operationId": "WhatsAppController_verifyWebhook",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Webhook verified successfully"
-          },
-          "403": {
-            "description": "Invalid verification token"
-          }
-        },
-        "summary": "Verify WhatsApp webhook",
-        "tags": [
-          "WhatsApp"
-        ]
-      },
-      "post": {
-        "operationId": "WhatsAppController_receiveMessage",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WhatsAppMessageDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Message processed successfully"
-          }
-        },
-        "summary": "Receive WhatsApp messages",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/orders": {
-      "get": {
-        "operationId": "WhatsAppController_getAllOrders",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Returns all orders"
-          }
-        },
-        "summary": "Get all WhatsApp orders",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/orders/{id}": {
-      "get": {
-        "operationId": "WhatsAppController_getOrder",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns the order"
-          },
-          "404": {
-            "description": "Order not found"
-          }
-        },
-        "summary": "Get order by ID",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/orders/phone/{phone}": {
-      "get": {
-        "operationId": "WhatsAppController_getOrdersByPhone",
-        "parameters": [
-          {
-            "name": "phone",
-            "required": true,
-            "in": "path",
-            "description": "Customer phone number",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns customer orders"
-          }
-        },
-        "summary": "Get orders by customer phone number",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/orders/{id}/status": {
-      "put": {
-        "operationId": "WhatsAppController_updateOrderStatus",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Order status updated"
-          },
-          "404": {
-            "description": "Order not found"
-          }
-        },
-        "summary": "Update order status",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/orders/{id}/cancel": {
-      "put": {
-        "operationId": "WhatsAppController_cancelOrder",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Order cancelled successfully"
-          },
-          "400": {
-            "description": "Cannot cancel delivered order"
-          },
-          "404": {
-            "description": "Order not found"
-          }
-        },
-        "summary": "Cancel order",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/stats/orders": {
-      "get": {
-        "operationId": "WhatsAppController_getOrderStats",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Returns order statistics"
-          }
-        },
-        "summary": "Get order statistics",
-        "tags": [
-          "WhatsApp"
-        ]
-      }
-    },
-    "/whatsapp/product-link/{itemId}": {
-      "get": {
-        "operationId": "WhatsAppController_generateProductLink",
-        "parameters": [
-          {
-            "name": "itemId",
-            "required": true,
-            "in": "path",
-            "description": "Product/Item ID",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns WhatsApp link"
-          }
-        },
-        "summary": "Generate WhatsApp click-to-chat link for a product",
-        "tags": [
-          "WhatsApp"
         ]
       }
     },
@@ -3189,6 +3509,15 @@
           },
           "phone": {
             "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
           }
         },
         "required": [
@@ -3204,8 +3533,238 @@
           },
           "phone": {
             "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
           }
         }
+      },
+      "CustomerRegisterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Customer full name",
+            "example": "John Doe"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Customer phone number (unique)",
+            "example": "+255712345678"
+          },
+          "password": {
+            "type": "string",
+            "description": "Customer password (min 6 characters)",
+            "example": "password123"
+          },
+          "email": {
+            "type": "string",
+            "description": "Customer email (optional)",
+            "example": "john@example.com"
+          },
+          "city": {
+            "type": "string",
+            "description": "Customer city (optional)",
+            "example": "Dar es Salaam"
+          },
+          "region": {
+            "type": "string",
+            "description": "Customer region (optional)",
+            "example": "Kinondoni"
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "password"
+        ]
+      },
+      "CustomerLoginDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Customer phone number",
+            "example": "+255712345678"
+          },
+          "password": {
+            "type": "string",
+            "description": "Customer password",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "phone",
+          "password"
+        ]
+      },
+      "SetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Customer phone number",
+            "example": "+255712345678"
+          },
+          "password": {
+            "type": "string",
+            "description": "New password (min 6 characters)",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "phone",
+          "password"
+        ]
+      },
+      "UpdateCustomerProfileDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Customer full name",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Customer email",
+            "example": "john@example.com"
+          },
+          "city": {
+            "type": "string",
+            "description": "Customer city",
+            "example": "Dar es Salaam"
+          },
+          "region": {
+            "type": "string",
+            "description": "Customer region",
+            "example": "Kinondoni"
+          }
+        }
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "Current password",
+            "example": "oldpassword123"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "New password (min 6 characters)",
+            "example": "newpassword123"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "WhatsAppMessageDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "EcommerceOrderItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "number",
+            "description": "Item ID",
+            "example": 1
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity",
+            "example": 2
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Unit price at time of order",
+            "example": 350400
+          }
+        },
+        "required": [
+          "itemId",
+          "quantity",
+          "unitPrice"
+        ]
+      },
+      "CreateEcommerceOrderDto": {
+        "type": "object",
+        "properties": {
+          "customerName": {
+            "type": "string",
+            "description": "Customer full name",
+            "example": "John Doe"
+          },
+          "customerPhone": {
+            "type": "string",
+            "description": "Customer phone number",
+            "example": "255712345678"
+          },
+          "customerEmail": {
+            "type": "string",
+            "description": "Customer email (optional)",
+            "example": "john@example.com"
+          },
+          "customerCity": {
+            "type": "string",
+            "description": "Customer city",
+            "example": "Dar es Salaam"
+          },
+          "customerRegion": {
+            "type": "string",
+            "description": "Customer region",
+            "example": "Kinondoni"
+          },
+          "warehouseId": {
+            "type": "number",
+            "description": "Warehouse ID",
+            "example": 1
+          },
+          "items": {
+            "description": "Order items",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EcommerceOrderItemDto"
+            }
+          },
+          "deliveryAddress": {
+            "type": "string",
+            "description": "Delivery address",
+            "example": "House 123, Street ABC, Kinondoni"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Order notes (optional)",
+            "example": "Please call before delivery"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method (defaults to Cash on Delivery)",
+            "enum": [
+              "cash_on_delivery",
+              "mobile_money",
+              "bank_transfer",
+              "card"
+            ],
+            "example": "cash_on_delivery"
+          }
+        },
+        "required": [
+          "customerName",
+          "customerPhone",
+          "warehouseId",
+          "items",
+          "deliveryAddress"
+        ]
       },
       "CreateSaleDto": {
         "type": "object",
@@ -3260,10 +3819,6 @@
             "type": "number"
           }
         }
-      },
-      "WhatsAppMessageDto": {
-        "type": "object",
-        "properties": {}
       },
       "CreateExpenseDto": {
         "type": "object",

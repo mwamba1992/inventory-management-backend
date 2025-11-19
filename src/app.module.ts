@@ -40,6 +40,7 @@ import { WhatsAppOrder } from './whatsapp/entities/whatsapp-order.entity';
 import { WhatsAppOrderItem } from './whatsapp/entities/whatsapp-order-item.entity';
 import { WhatsAppSession } from './whatsapp/entities/whatsapp-session.entity';
 import { ReportsModule } from './reports/reports.module';
+import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { ReportsModule } from './reports/reports.module';
     ItemSuppliersModule,
     ColorCategoryModule,
     CustomerModule,
+    CustomerAuthModule,
     SaleModule,
     ExpenseModule,
     WhatsAppModule,
