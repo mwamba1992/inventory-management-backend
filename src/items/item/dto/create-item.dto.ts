@@ -32,6 +32,9 @@ export class CreateItemDto {
   @IsOptional()
   supplierId: number;
 
+  @IsOptional()
+  brandId: number;
+
   @IsNotEmpty()
   businessId: number;
 

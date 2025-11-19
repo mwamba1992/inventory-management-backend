@@ -22,6 +22,7 @@ import { UpdateItemAccountMappingDto } from './dto/update-item-account-mapping.d
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
 import { ColorCategory } from '../../settings/color-category/entities/color-category.entity';
+import { Brand } from '../../settings/brand/entities/brand.entity';
 
 @Injectable()
 export class ItemService {
@@ -48,6 +49,8 @@ export class ItemService {
     private readonly itemSupplierRepository: Repository<ItemSupplier>,
     @InjectRepository(ColorCategory)
     private readonly colorCategoryRepository: Repository<ColorCategory>,
+    @InjectRepository(Brand)
+    private readonly brandRepository: Repository<Brand>,
   ) {}
 
   async create(createItemDto: CreateItemDto): Promise<Item> {
@@ -87,6 +90,12 @@ export class ItemService {
       });
     }
 
+    if (createItemDto.brandId) {
+      item.brand = await this.brandRepository.findOneByOrFail({
+        id: createItemDto.brandId,
+      });
+    }
+
     item.business = await this.businessRepository.findOneByOrFail({
       id: createItemDto.businessId,
     });
@@ -100,6 +109,7 @@ export class ItemService {
         'subcategory',
         'warehouse',
         'supplier',
+        'brand',
         'business',
         'prices',
         'stock',
@@ -117,6 +127,7 @@ export class ItemService {
         'subcategory',
         'warehouse',
         'supplier',
+        'brand',
         'business',
         'prices',
         'stock',

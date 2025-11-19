@@ -14,6 +14,7 @@ import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { Sale } from '../../sale/entities/sale.entity';
 import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
 import { ColorCategory } from '../../settings/color-category/entities/color-category.entity';
+import { Brand } from '../../settings/brand/entities/brand.entity';
 import { CloudinaryService } from './services/cloudinary.service';
 
 @Module({
@@ -30,7 +31,8 @@ import { CloudinaryService } from './services/cloudinary.service';
       Warehouse,
       Sale,
       ItemSupplier,
-      ColorCategory
+      ColorCategory,
+      Brand
     ]),
   ],
   controllers: [ItemController],

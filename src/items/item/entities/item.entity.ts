@@ -14,6 +14,7 @@ import { ItemStock } from './item-stock.entity';
 import { ItemAccountMapping } from './item-account-mapping.entity';
 import { Warehouse } from '../../../settings/warehouse/entities/warehouse.entity';
 import { ItemSupplier } from '../../../settings/item-suppliers/entities/item-supplier.entity';
+import { Brand } from '../../../settings/brand/entities/brand.entity';
 
 export enum ItemCondition {
   NEW = 'new',
@@ -55,6 +56,9 @@ export class Item extends BaseEntity {
 
   @ManyToOne(() => ItemSupplier, { nullable: true })
   supplier: ItemSupplier;
+
+  @ManyToOne(() => Brand, (brand) => brand.items, { nullable: true })
+  brand: Brand;
 
   @ManyToOne(() => Business, (business) => business.items)
   business: Business;

@@ -2216,6 +2216,185 @@
         ]
       }
     },
+    "/brands": {
+      "post": {
+        "operationId": "BrandController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBrandDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Brand created successfully"
+          },
+          "409": {
+            "description": "Brand with this name already exists"
+          }
+        },
+        "summary": "Create a new brand",
+        "tags": [
+          "Brands"
+        ]
+      },
+      "get": {
+        "operationId": "BrandController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns all brands"
+          }
+        },
+        "summary": "Get all brands",
+        "tags": [
+          "Brands"
+        ]
+      }
+    },
+    "/brands/active": {
+      "get": {
+        "operationId": "BrandController_findActive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns all active brands"
+          }
+        },
+        "summary": "Get all active brands",
+        "tags": [
+          "Brands"
+        ]
+      }
+    },
+    "/brands/total": {
+      "get": {
+        "operationId": "BrandController_getTotalBrands",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns total brand count"
+          }
+        },
+        "summary": "Get total number of brands",
+        "tags": [
+          "Brands"
+        ]
+      }
+    },
+    "/brands/active/count": {
+      "get": {
+        "operationId": "BrandController_getActiveBrandsCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns active brand count"
+          }
+        },
+        "summary": "Get count of active brands",
+        "tags": [
+          "Brands"
+        ]
+      }
+    },
+    "/brands/{id}": {
+      "get": {
+        "operationId": "BrandController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the brand"
+          },
+          "404": {
+            "description": "Brand not found"
+          }
+        },
+        "summary": "Get a brand by ID",
+        "tags": [
+          "Brands"
+        ]
+      },
+      "put": {
+        "operationId": "BrandController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBrandDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Brand updated successfully"
+          },
+          "404": {
+            "description": "Brand not found"
+          },
+          "409": {
+            "description": "Brand name already exists"
+          }
+        },
+        "summary": "Update a brand",
+        "tags": [
+          "Brands"
+        ]
+      },
+      "delete": {
+        "operationId": "BrandController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Brand deleted successfully"
+          },
+          "404": {
+            "description": "Brand not found"
+          },
+          "409": {
+            "description": "Cannot delete brand with associated items"
+          }
+        },
+        "summary": "Delete a brand",
+        "tags": [
+          "Brands"
+        ]
+      }
+    },
     "/customers": {
       "post": {
         "operationId": "CustomerController_create",
@@ -3500,6 +3679,69 @@
       "UpdateColorCategoryDto": {
         "type": "object",
         "properties": {}
+      },
+      "CreateBrandDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Brand name",
+            "example": "Samsung"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brand description",
+            "example": "Samsung Electronics Co., Ltd."
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Brand logo URL",
+            "example": "https://example.com/logo.png"
+          },
+          "website": {
+            "type": "string",
+            "description": "Brand website",
+            "example": "https://www.samsung.com"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is brand active",
+            "example": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateBrandDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Brand name",
+            "example": "Samsung"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brand description",
+            "example": "Samsung Electronics Co., Ltd."
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Brand logo URL",
+            "example": "https://example.com/logo.png"
+          },
+          "website": {
+            "type": "string",
+            "description": "Brand website",
+            "example": "https://www.samsung.com"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is brand active",
+            "example": true
+          }
+        }
       },
       "CreateCustomerDto": {
         "type": "object",

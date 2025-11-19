@@ -21,6 +21,8 @@ import { ItemSupplier } from './settings/item-suppliers/entities/item-supplier.e
 import { ItemSuppliersModule } from './settings/item-suppliers/item-suppliers.module';
 import { ColorCategory } from './settings/color-category/entities/color-category.entity';
 import { ColorCategoryModule } from './settings/color-category/color-category.module';
+import { Brand } from './settings/brand/entities/brand.entity';
+import { BrandModule } from './settings/brand/brand.module';
 import { AuthModule } from './auth/auth.module';
 import { User } from './auth/user/entities/user.entity';
 import { Role } from './auth/role/entities/role.entity';
@@ -66,6 +68,7 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
         Warehouse,
         ItemSupplier,
         ColorCategory,
+        Brand,
         ItemPrice,
         ItemStock,
         ItemStockDistribution,
@@ -95,6 +98,7 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
     WarehouseModule,
     ItemSuppliersModule,
     ColorCategoryModule,
+    BrandModule,
     CustomerModule,
     CustomerAuthModule,
     SaleModule,
