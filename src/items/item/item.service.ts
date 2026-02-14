@@ -145,7 +145,51 @@ export class ItemService {
       where: { id },
     });
     if (!item) throw new Error('Item not found');
-    Object.assign(item, updateItemDto);
+
+    // Handle relationship updates
+    if (updateItemDto.categoryId) {
+      item.category = await this.commonRepository.findOneByOrFail({
+        id: updateItemDto.categoryId,
+      });
+    }
+
+    if (updateItemDto.subcategoryId) {
+      item.subcategory = await this.commonRepository.findOneByOrFail({
+        id: updateItemDto.subcategoryId,
+      });
+    }
+
+    if (updateItemDto.warehouseId) {
+      item.warehouse = await this.wareHouseRepository.findOneByOrFail({
+        id: updateItemDto.warehouseId,
+      });
+    }
+
+    if (updateItemDto.supplierId) {
+      item.supplier = await this.itemSupplierRepository.findOneByOrFail({
+        id: updateItemDto.supplierId,
+      });
+    }
+
+    if (updateItemDto.brandId) {
+      item.brand = await this.brandRepository.findOneByOrFail({
+        id: updateItemDto.brandId,
+      });
+    }
+
+    if (updateItemDto.businessId) {
+      item.business = await this.businessRepository.findOneByOrFail({
+        id: updateItemDto.businessId,
+      });
+    }
+
+    // Update other scalar properties
+    if (updateItemDto.name !== undefined) item.name = updateItemDto.name;
+    if (updateItemDto.desc !== undefined) item.desc = updateItemDto.desc;
+    if (updateItemDto.code !== undefined) item.code = updateItemDto.code;
+    if (updateItemDto.imageUrl !== undefined) item.imageUrl = updateItemDto.imageUrl;
+    if (updateItemDto.condition !== undefined) item.condition = updateItemDto.condition;
+
     return this.itemRepository.save(item);
   }
 
