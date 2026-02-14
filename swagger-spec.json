@@ -3515,6 +3515,20 @@
           "Reports"
         ]
       }
+    },
+    "/reports/catalogue/pdf": {
+      "get": {
+        "operationId": "ReportsController_getCataloguePdf",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
     }
   },
   "info": {

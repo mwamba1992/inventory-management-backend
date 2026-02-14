@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      color: #1a1a1a;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding-bottom: 16px;
+      border-bottom: 3px solid #0d9488;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0d9488;
+      margin-bottom: 2px;
+    }
+    .header .subtitle {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .header .contact {
+      font-size: 9px;
+      color: #888;
+    }
+    .header .contact span { margin: 0 8px; }
+
+    /* Title bar */
+    .title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .title-bar h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .title-bar .date {
+      font-size: 10px;
+      color: #888;
+    }
+    .summary {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .summary span {
+      display: inline-block;
+      margin-right: 20px;
+      padding: 4px 10px;
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+
+    /* Category section */
+    .category-section {
+      margin-bottom: 24px;
+      page-break-inside: avoid;
+    }
+    .category-header {
+      background: #0d9488;
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px 4px 0 0;
+      margin-bottom: 0;
+    }
+    .category-count {
+      font-weight: 400;
+      font-size: 10px;
+      opacity: 0.85;
+      margin-left: 8px;
+    }
+
+    /* Product table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+    }
+    thead th {
+      background: #f8fafb;
+      padding: 7px 10px;
+      text-align: left;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #555;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    tbody td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tbody tr:nth-child(even) {
+      background: #fafbfc;
+    }
+    tbody tr:hover {
+      background: #f0fdfa;
+    }
+
+    /* Column widths */
+    .col-no { width: 30px; text-align: center; color: #aaa; }
+    .col-code { width: 90px; }
+    .col-name { }
+    .col-brand { width: 100px; }
+    .col-condition { width: 70px; text-align: center; }
+    .col-price { width: 110px; text-align: right; }
+    .col-stock { width: 80px; text-align: center; }
+
+    /* Product name */
+    .product-name {
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .product-desc {
+      font-size: 9px;
+      color: #888;
+      margin-top: 1px;
+    }
+    .product-code {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #555;
+    }
+
+    /* Price */
+    .price {
+      font-weight: 700;
+      font-size: 11px;
+      color: #1a1a1a;
+    }
+
+    /* Stock badge */
+    .stock-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .in-stock {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .low-stock {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .out-of-stock {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Condition badge */
+    .condition-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .condition-new {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .condition-used {
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 30px;
+      padding-top: 12px;
+      border-top: 2px solid #e2e8f0;
+      text-align: center;
+      font-size: 9px;
+      color: #aaa;
+    }
+
+    /* Print / PDF page settings */
+    @page {
+      size: A4;
+      margin: 15mm 12mm;
+    }
+    @media print {
+      .category-section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Business Header -->
+  <div class="header">
+    <h1>{{businessName}}</h1>
+    <div class="subtitle">Product Catalogue</div>
+    <div class="contact">
+      {{#if businessPhone}}<span>{{businessPhone}}</span>{{/if}}
+      {{#if businessEmail}}<span>{{businessEmail}}</span>{{/if}}
+      {{#if businessWebsite}}<span>{{businessWebsite}}</span>{{/if}}
+    </div>
+  </div>
+
+  <!-- Title & Date -->
+  <div class="title-bar">
+    <h2>Available Products</h2>
+    <div class="date">Generated: {{generatedDate}}</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary">
+    <span><strong>{{totalProducts}}</strong> Products</span>
+    <span><strong>{{totalCategories}}</strong> Categories</span>
+    <span><strong>{{totalInStock}}</strong> In Stock</span>
+  </div>
+
+  <!-- Categories -->
+  {{#each categories}}
+  <div class="category-section">
+    <div class="category-header">
+      {{categoryName}}
+      <span class="category-count">({{productCount}} items)</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">#</th>
+          <th class="col-code">Code</th>
+          <th class="col-name">Product</th>
+          <th class="col-brand">Brand</th>
+          <th class="col-condition">Condition</th>
+          <th class="col-price">Price (TZS)</th>
+          <th class="col-stock">Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each products}}
+        <tr>
+          <td class="col-no">{{rowNumber}}</td>
+          <td class="col-code"><span class="product-code">{{code}}</span></td>
+          <td class="col-name">
+            <div class="product-name">{{name}}</div>
+            {{#if description}}<div class="product-desc">{{description}}</div>{{/if}}
+          </td>
+          <td class="col-brand">{{brandName}}</td>
+          <td class="col-condition">
+            <span class="condition-badge {{conditionClass}}">{{condition}}</span>
+          </td>
+          <td class="col-price"><span class="price">{{sellingPrice}}</span></td>
+          <td class="col-stock">
+            <span class="stock-badge {{stockClass}}">{{stockStatus}}</span>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{/each}}
+
+  <!-- Footer -->
+  <div class="footer">
+    {{businessName}} &middot; Product Catalogue &middot; Generated on {{generatedDate}}
+  </div>
+
+</body>
+</html>

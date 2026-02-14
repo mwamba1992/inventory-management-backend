@@ -1,6 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ReportsService } from './reports.service';
+import { CatalogueService } from './catalogue/catalogue.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
+import { CatalogueFilterDto } from './dto/catalogue-filter.dto';
 import {
   BusinessOverviewReport,
   CustomerReport,
@@ -11,7 +14,10 @@ import {
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(
+    private readonly reportsService: ReportsService,
+    private readonly catalogueService: CatalogueService,
+  ) {}
 
   /**
    * Get business overview report
@@ -67,5 +73,26 @@ export class ReportsController {
   ): Promise<BalanceSheetReport> {
     const date = asOfDate ? new Date(asOfDate) : undefined;
     return this.reportsService.getBalanceSheet(date);
+  }
+
+  /**
+   * Download product catalogue as PDF
+   * GET /reports/catalogue/pdf?categoryId=1&inStockOnly=true
+   */
+  @Get('catalogue/pdf')
+  async getCataloguePdf(
+    @Query() filter: CatalogueFilterDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const pdfBuffer = await this.catalogueService.generateCataloguePdf(filter);
+    const filename = `catalogue-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.end(pdfBuffer);
   }
 }

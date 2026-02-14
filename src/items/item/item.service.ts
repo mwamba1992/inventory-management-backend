@@ -187,7 +187,7 @@ export class ItemService {
     if (updateItemDto.name !== undefined) item.name = updateItemDto.name;
     if (updateItemDto.desc !== undefined) item.desc = updateItemDto.desc;
     if (updateItemDto.code !== undefined) item.code = updateItemDto.code;
-    if (updateItemDto.imageUrl !== undefined) item.imageUrl = updateItemDto.imageUrl;
+    if (updateItemDto.imageUrl !== undefined) item.imageUrl = updateItemDto.imageUrl ?? item.imageUrl;
     if (updateItemDto.condition !== undefined) item.condition = updateItemDto.condition;
 
     return this.itemRepository.save(item);
