@@ -10,11 +10,13 @@ import { Warehouse } from '../settings/warehouse/entities/warehouse.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
 import { WhatsAppService } from './awarness.sales';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Sale, Customer, Item, Warehouse, ItemStock]),
     forwardRef(() => WhatsAppModule), // Use forwardRef to avoid circular dependency
+    SharedModule,
   ],
   controllers: [SaleController],
   providers: [SaleService, WhatsAppService],

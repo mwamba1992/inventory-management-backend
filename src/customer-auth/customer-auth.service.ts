@@ -10,6 +10,7 @@ import { UpdateCustomerProfileDto } from './dto/update-customer-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { Constants } from '../utils/constants';
+import { UserContextService } from '../auth/user/dto/user.context';
 
 @Injectable()
 export class CustomerAuthService {
@@ -17,15 +18,24 @@ export class CustomerAuthService {
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
     private readonly jwtService: JwtService,
+    private readonly userContextService: UserContextService,
   ) {}
 
   /**
    * Register a new customer with password
    */
-  async register(dto: CustomerRegisterDto): Promise<{ customer: Partial<Customer>; access_token: string }> {
-    // Check if customer already exists
+  async register(dto: CustomerRegisterDto, businessId?: number): Promise<{ customer: Partial<Customer>; access_token: string }> {
+    // Resolve businessId: parameter takes priority, then UserContextService
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
+
+    // Check if customer already exists (scoped by businessId)
+    const whereClause: any = { phone: dto.phone };
+    if (resolvedBusinessId) {
+      whereClause.businessId = resolvedBusinessId;
+    }
+
     const existingCustomer = await this.customerRepository.findOne({
-      where: { phone: dto.phone },
+      where: whereClause,
     });
 
     if (existingCustomer && existingCustomer.hasPassword) {
@@ -51,6 +61,7 @@ export class CustomerAuthService {
         ...dto,
         password: hashedPassword,
         hasPassword: true,
+        ...(resolvedBusinessId && { businessId: resolvedBusinessId }),
       });
       customer = await this.customerRepository.save(customer);
     }
@@ -70,10 +81,18 @@ export class CustomerAuthService {
   /**
    * Login customer with phone and password
    */
-  async login(dto: CustomerLoginDto): Promise<{ customer: Partial<Customer>; access_token: string }> {
-    // Find customer by phone
+  async login(dto: CustomerLoginDto, businessId?: number): Promise<{ customer: Partial<Customer>; access_token: string }> {
+    // Resolve businessId: parameter takes priority, then UserContextService
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
+
+    // Find customer by phone (scoped by businessId)
+    const whereClause: any = { phone: dto.phone };
+    if (resolvedBusinessId) {
+      whereClause.businessId = resolvedBusinessId;
+    }
+
     const customer = await this.customerRepository.findOne({
-      where: { phone: dto.phone },
+      where: whereClause,
     });
 
     if (!customer) {
@@ -106,9 +125,18 @@ export class CustomerAuthService {
   /**
    * Set password for existing customer (who doesn't have one yet)
    */
-  async setPassword(dto: SetPasswordDto): Promise<{ message: string }> {
+  async setPassword(dto: SetPasswordDto, businessId?: number): Promise<{ message: string }> {
+    // Resolve businessId: parameter takes priority, then UserContextService
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
+
+    // Find customer (scoped by businessId)
+    const whereClause: any = { phone: dto.phone };
+    if (resolvedBusinessId) {
+      whereClause.businessId = resolvedBusinessId;
+    }
+
     const customer = await this.customerRepository.findOne({
-      where: { phone: dto.phone },
+      where: whereClause,
     });
 
     if (!customer) {
@@ -212,7 +240,8 @@ export class CustomerAuthService {
       sub: customer.id,
       phone: customer.phone,
       name: customer.name,
-      type: 'customer', // Differentiate from admin tokens
+      type: 'customer',
+      businessId: customer.businessId,
     };
 
     return this.jwtService.signAsync(payload, {

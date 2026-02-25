@@ -7,10 +7,12 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { Customer } from '../../settings/customer/entities/customer.entity';
 import { Item } from '../../items/item/entities/item.entity';
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
+import { Business } from '../../settings/business/entities/business.entity';
 
 export enum SaleStatus {
   PENDING = 'pending',
@@ -59,6 +61,14 @@ export class Sale {
 
   @Column({ name: 'delivered_at', type: 'timestamp', nullable: true })
   deliveredAt: Date;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @CreateDateColumn()
   createdAt: Date;

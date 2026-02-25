@@ -13,7 +13,7 @@ import { RoleService } from './role/role.service';
 import { Role } from './role/entities/role.entity';
 import { PermissionService } from './permission/permission.service';
 import { Permission } from './permission/entities/permission.entity';
-import { UserContextService } from './user/dto/user.context';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -38,10 +38,11 @@ import { UserContextService } from './user/dto/user.context';
     UserModule,
     PermissionModule,
     RoleModule,
+    SharedModule,
     User,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserService, UserContextService],
-  exports: [UserContextService],
+  providers: [AuthService, UserService],
+  exports: [SharedModule],
 })
 export class AuthModule {}

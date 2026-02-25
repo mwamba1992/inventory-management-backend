@@ -6,6 +6,7 @@ import { CustomerAuthService } from './customer-auth.service';
 import { Customer } from '../settings/customer/entities/customer.entity';
 import { Constants } from '../utils/constants';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
       signOptions: { expiresIn: '30d' }, // Customer tokens last 30 days
     }),
     WhatsAppModule, // Import to access WhatsAppOrderService
+    SharedModule,
   ],
   controllers: [CustomerAuthController],
   providers: [CustomerAuthService],

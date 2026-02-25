@@ -4,6 +4,7 @@ import { MoreThanOrEqual, Repository, Between, MoreThan, LessThan } from 'typeor
 import { Expense } from './entities/expense.entity';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { Sale } from '../sale/entities/sale.entity';
+import { UserContextService } from '../auth/user/dto/user.context';
 
 @Injectable()
 export class ExpenseService {
@@ -12,6 +13,7 @@ export class ExpenseService {
     private readonly expenseRepo: Repository<Expense>,
     @InjectRepository(Sale)
     private readonly saleRepo: Repository<Sale>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async update(
@@ -19,7 +21,7 @@ export class ExpenseService {
     updateExpenseDto: CreateExpenseDto,
   ): Promise<Expense> {
     const expense = await this.expenseRepo.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
     });
     if (!expense) {
       throw new Error('Expense not found');
@@ -31,33 +33,43 @@ export class ExpenseService {
     const expense = this.expenseRepo.create({
       ...createExpenseDto,
       createdBy: 'user',
+      businessId: this.userContextService.getBusinessId(),
     });
     return this.expenseRepo.save(expense);
   }
 
   async findAll(): Promise<Expense[]> {
     return this.expenseRepo.find({
+      where: { businessId: this.userContextService.getBusinessId() },
       order: { expenseDate: 'DESC' },
     });
   }
 
   async findOne(id: number): Promise<any> {
     return this.expenseRepo.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
     });
   }
 
   async delete(id: number): Promise<void> {
+    const expense = await this.expenseRepo.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+    });
+    if (!expense) {
+      throw new Error('Expense not found');
+    }
     await this.expenseRepo.delete(id);
   }
   async getRevenueExpenseBreakDown(days: number = 30) {
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const businessId = this.userContextService.getBusinessId();
 
     const sales = await this.saleRepo
       .createQueryBuilder('sale')
       .leftJoinAndSelect('sale.item', 'item')
       .leftJoinAndSelect('item.prices', 'price')
       .where('sale.createdAt >= :startDate', { startDate })
+      .andWhere('sale.business_id = :businessId', { businessId })
       .orderBy('sale.createdAt', 'DESC')
       .getMany();
 
@@ -91,6 +103,7 @@ export class ExpenseService {
       .createQueryBuilder('sale')
       .select('SUM(sale.amountPaid)', 'totalRevenue')
       .where('sale.createdAt >= :startDate', { startDate })
+      .andWhere('sale.business_id = :businessId', { businessId })
       .getRawOne();
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -98,6 +111,7 @@ export class ExpenseService {
       .createQueryBuilder('expense')
       .select('SUM(expense.amount)', 'totalExpense')
       .where('expense.expenseDate >= :startDate', { startDate })
+      .andWhere('expense.business_id = :businessId', { businessId })
       .getRawOne();
 
     const profitMargin =
@@ -133,6 +147,7 @@ export class ExpenseService {
       .select('expense.category', 'category')
       .addSelect('SUM(expense.amount)', "amount")
       .where('expense.expenseDate >= :startDate', { startDate })
+      .andWhere('expense.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .groupBy('expense.category')
       .orderBy('SUM(expense.amount)', 'DESC')
       .getRawMany();
@@ -146,7 +161,9 @@ export class ExpenseService {
   }
 
   async findExpensesByDateRange(startDate?: string, endDate?: string): Promise<Expense[]> {
-    let whereCondition: any = {};
+    let whereCondition: any = {
+      businessId: this.userContextService.getBusinessId(),
+    };
 
     if (startDate && endDate) {
       const start = new Date(startDate);

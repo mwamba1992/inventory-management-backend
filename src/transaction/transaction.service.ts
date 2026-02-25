@@ -1,26 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { InventoryTransaction } from './entities/transaction.entity';
+import { UserContextService } from '../auth/user/dto/user.context';
 
 @Injectable()
 export class TransactionService {
-  create(createTransactionDto: CreateTransactionDto) {
-    return 'This action adds a new transaction';
+  constructor(
+    @InjectRepository(InventoryTransaction)
+    private readonly transactionRepo: Repository<InventoryTransaction>,
+    private readonly userContextService: UserContextService,
+  ) {}
+
+  async create(createTransactionDto: CreateTransactionDto) {
+    const transaction = this.transactionRepo.create({
+      ...createTransactionDto,
+      businessId: this.userContextService.getBusinessId(),
+    });
+    return this.transactionRepo.save(transaction);
   }
 
   findAll() {
-    return `This action returns all transaction`;
+    return this.transactionRepo.find({
+      where: { businessId: this.userContextService.getBusinessId() },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} transaction`;
+  async findOne(id: number) {
+    const transaction = await this.transactionRepo.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+    });
+    if (!transaction) throw new NotFoundException(`Transaction #${id} not found`);
+    return transaction;
   }
 
-  update(id: number, updateTransactionDto: UpdateTransactionDto) {
-    return `This action updates a #${id} transaction`;
+  async update(id: number, updateTransactionDto: UpdateTransactionDto) {
+    const transaction = await this.transactionRepo.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+    });
+    if (!transaction) throw new NotFoundException(`Transaction #${id} not found`);
+    Object.assign(transaction, updateTransactionDto);
+    return this.transactionRepo.save(transaction);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} transaction`;
+  async remove(id: number) {
+    const transaction = await this.transactionRepo.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+    });
+    if (!transaction) throw new NotFoundException(`Transaction #${id} not found`);
+    await this.transactionRepo.remove(transaction);
   }
 }

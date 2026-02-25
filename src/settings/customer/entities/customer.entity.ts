@@ -5,9 +5,15 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  Unique,
 } from 'typeorm';
+import { Business } from '../../business/entities/business.entity';
 
 @Entity()
+@Unique(['phone', 'businessId'])
 export class Customer {
   @PrimaryGeneratedColumn()
   id: number;
@@ -15,8 +21,16 @@ export class Customer {
   @Column()
   name: string;
 
-  @Column({ unique: true })
+  @Column()
   phone: string;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @Column({ nullable: true })
   email: string;

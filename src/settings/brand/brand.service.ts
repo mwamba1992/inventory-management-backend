@@ -4,44 +4,55 @@ import { Repository } from 'typeorm';
 import { Brand } from './entities/brand.entity';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { UserContextService } from '../../auth/user/dto/user.context';
 
 @Injectable()
 export class BrandService {
   constructor(
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async create(createBrandDto: CreateBrandDto): Promise<Brand> {
-    // Check if brand with same name already exists
+    const businessId = this.userContextService.getBusinessId();
+
+    // Check if brand with same name already exists within this business
     const existingBrand = await this.brandRepository.findOne({
-      where: { name: createBrandDto.name },
+      where: { name: createBrandDto.name, businessId },
     });
 
     if (existingBrand) {
       throw new ConflictException(`Brand with name "${createBrandDto.name}" already exists`);
     }
 
-    const brand = this.brandRepository.create(createBrandDto);
+    const brand = this.brandRepository.create({
+      ...createBrandDto,
+      businessId,
+    });
     return this.brandRepository.save(brand);
   }
 
   async findAll(): Promise<Brand[]> {
     return this.brandRepository.find({
+      where: { businessId: this.userContextService.getBusinessId() },
       order: { name: 'ASC' },
     });
   }
 
   async findActive(): Promise<Brand[]> {
     return this.brandRepository.find({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        businessId: this.userContextService.getBusinessId(),
+      },
       order: { name: 'ASC' },
     });
   }
 
   async findOne(id: number): Promise<Brand> {
     const brand = await this.brandRepository.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
       relations: ['items'],
     });
 
@@ -53,12 +64,13 @@ export class BrandService {
   }
 
   async update(id: number, updateBrandDto: UpdateBrandDto): Promise<Brand> {
+    const businessId = this.userContextService.getBusinessId();
     const brand = await this.findOne(id);
 
     // If updating name, check if new name already exists
     if (updateBrandDto.name && updateBrandDto.name !== brand.name) {
       const existingBrand = await this.brandRepository.findOne({
-        where: { name: updateBrandDto.name },
+        where: { name: updateBrandDto.name, businessId },
       });
 
       if (existingBrand) {
@@ -84,10 +96,17 @@ export class BrandService {
   }
 
   async getTotalBrands(): Promise<number> {
-    return this.brandRepository.count();
+    return this.brandRepository.count({
+      where: { businessId: this.userContextService.getBusinessId() },
+    });
   }
 
   async getActiveBrandsCount(): Promise<number> {
-    return this.brandRepository.count({ where: { isActive: true } });
+    return this.brandRepository.count({
+      where: {
+        isActive: true,
+        businessId: this.userContextService.getBusinessId(),
+      },
+    });
   }
 }

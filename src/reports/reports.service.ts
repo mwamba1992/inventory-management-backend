@@ -19,6 +19,7 @@ import {
   FinancialReport,
 } from './interfaces/report.interface';
 import { DateRange, ReportFilterDto } from './dto/report-filter.dto';
+import { UserContextService } from '../auth/user/dto/user.context';
 
 @Injectable()
 export class ReportsService {
@@ -37,6 +38,7 @@ export class ReportsService {
     private readonly whatsappOrderItemRepository: Repository<WhatsAppOrderItem>,
     @InjectRepository(Expense)
     private readonly expenseRepository: Repository<Expense>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   /**
@@ -114,12 +116,14 @@ export class ReportsService {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.getDateRange(filter);
 
+    const businessId = this.userContextService.getBusinessId();
+
     // Get current period data
     const [currentRevenue, currentOrders, currentCustomers] = await Promise.all(
       [
-        this.getTotalRevenue(startDate, endDate, filter.businessId),
-        this.getTotalOrders(startDate, endDate, filter.businessId),
-        this.getActiveCustomers(startDate, endDate, filter.businessId),
+        this.getTotalRevenue(startDate, endDate, businessId),
+        this.getTotalOrders(startDate, endDate, businessId),
+        this.getActiveCustomers(startDate, endDate, businessId),
       ],
     );
 
@@ -129,17 +133,17 @@ export class ReportsService {
         this.getTotalRevenue(
           previousStartDate,
           previousEndDate,
-          filter.businessId,
+          businessId,
         ),
         this.getTotalOrders(
           previousStartDate,
           previousEndDate,
-          filter.businessId,
+          businessId,
         ),
         this.getActiveCustomers(
           previousStartDate,
           previousEndDate,
-          filter.businessId,
+          businessId,
         ),
       ]);
 
@@ -151,8 +155,8 @@ export class ReportsService {
 
     // Get sales trend and top products
     const [salesTrend, topProducts] = await Promise.all([
-      this.getSalesTrend(startDate, endDate, filter.businessId),
-      this.getTopProducts(startDate, endDate, filter.businessId, 10),
+      this.getSalesTrend(startDate, endDate, businessId),
+      this.getTopProducts(startDate, endDate, businessId, 10),
     ]);
 
     const period = this.getPeriodLabel(
@@ -241,6 +245,9 @@ export class ReportsService {
         startDate,
         endDate,
       });
+    if (businessId) {
+      salesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
 
     const salesResult = await salesQuery.getRawOne();
 
@@ -255,6 +262,9 @@ export class ReportsService {
       .andWhere('wo.status IN (:...statuses)', {
         statuses: ['confirmed', 'processing', 'ready', 'delivered'],
       });
+    if (businessId) {
+      whatsappQuery.andWhere('wo.business_id = :businessId', { businessId });
+    }
 
     const whatsappResult = await whatsappQuery.getRawOne();
 
@@ -277,17 +287,24 @@ export class ReportsService {
         startDate,
         endDate,
       });
+    if (businessId) {
+      salesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
 
     const salesCount = await salesQuery.getCount();
 
-    const whatsappCount = await this.whatsappOrderRepository
+    const whatsappQuery = this.whatsappOrderRepository
       .createQueryBuilder('wo')
       .where('wo.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
       })
-      .andWhere('wo.status != :status', { status: 'cancelled' })
-      .getCount();
+      .andWhere('wo.status != :status', { status: 'cancelled' });
+    if (businessId) {
+      whatsappQuery.andWhere('wo.business_id = :businessId', { businessId });
+    }
+
+    const whatsappCount = await whatsappQuery.getCount();
 
     return salesCount + whatsappCount;
   }
@@ -309,10 +326,13 @@ export class ReportsService {
         endDate,
       })
       .andWhere('customer.id IS NOT NULL');
+    if (businessId) {
+      salesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
 
     const salesCustomers = await salesQuery.getRawMany();
 
-    const whatsappCustomers = await this.whatsappOrderRepository
+    const whatsappQuery2 = this.whatsappOrderRepository
       .createQueryBuilder('wo')
       .select('DISTINCT wo.customer_id', 'customer_id')
       .where('wo.createdAt BETWEEN :startDate AND :endDate', {
@@ -320,8 +340,12 @@ export class ReportsService {
         endDate,
       })
       .andWhere('wo.customer_id IS NOT NULL')
-      .andWhere('wo.status != :status', { status: 'cancelled' })
-      .getRawMany();
+      .andWhere('wo.status != :status', { status: 'cancelled' });
+    if (businessId) {
+      whatsappQuery2.andWhere('wo.business_id = :businessId', { businessId });
+    }
+
+    const whatsappCustomers = await whatsappQuery2.getRawMany();
 
     // Combine and deduplicate customer IDs
     const uniqueCustomerIds = new Set([
@@ -352,11 +376,14 @@ export class ReportsService {
       })
       .groupBy('DATE(sale.createdAt)')
       .orderBy('date', 'ASC');
+    if (businessId) {
+      salesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
 
     const salesData = await salesQuery.getRawMany();
 
     // Get WhatsApp orders data
-    const whatsappData = await this.whatsappOrderRepository
+    const whatsappQuery = this.whatsappOrderRepository
       .createQueryBuilder('wo')
       .select('DATE(wo.createdAt)', 'date')
       .addSelect('COALESCE(SUM(wo.totalAmount), 0)', 'revenue')
@@ -367,8 +394,12 @@ export class ReportsService {
       })
       .andWhere('wo.status != :status', { status: 'cancelled' })
       .groupBy('DATE(wo.createdAt)')
-      .orderBy('date', 'ASC')
-      .getRawMany();
+      .orderBy('date', 'ASC');
+    if (businessId) {
+      whatsappQuery.andWhere('wo.business_id = :businessId', { businessId });
+    }
+
+    const whatsappData = await whatsappQuery.getRawMany();
 
     // Merge data by date
     const dataMap = new Map<string, SalesTrendDataPoint>();
@@ -423,7 +454,11 @@ export class ReportsService {
         startDate,
         endDate,
       })
-      .andWhere('item.id IS NOT NULL')
+      .andWhere('item.id IS NOT NULL');
+    if (businessId) {
+      salesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
+    salesQuery
       .groupBy('item.id')
       .addGroupBy('item.name')
       .addGroupBy('item.code');
@@ -431,7 +466,7 @@ export class ReportsService {
     const salesProducts = await salesQuery.getRawMany();
 
     // Get top products from WhatsApp orders
-    const whatsappProducts = await this.whatsappOrderItemRepository
+    const whatsappProductsQuery = this.whatsappOrderItemRepository
       .createQueryBuilder('orderItem')
       .leftJoin('orderItem.order', 'order')
       .leftJoin('orderItem.item', 'item')
@@ -445,11 +480,16 @@ export class ReportsService {
         startDate,
         endDate,
       })
-      .andWhere('order.status != :status', { status: 'cancelled' })
+      .andWhere('order.status != :status', { status: 'cancelled' });
+    if (businessId) {
+      whatsappProductsQuery.andWhere('order.business_id = :businessId', { businessId });
+    }
+    whatsappProductsQuery
       .groupBy('item.id')
       .addGroupBy('item.name')
-      .addGroupBy('item.code')
-      .getRawMany();
+      .addGroupBy('item.code');
+
+    const whatsappProducts = await whatsappProductsQuery.getRawMany();
 
     // Merge products data
     const productMap = new Map<number, TopProduct>();
@@ -481,10 +521,14 @@ export class ReportsService {
    * Get inventory report
    */
   async getInventoryReport(filter: ReportFilterDto): Promise<InventoryReport> {
-    const totalItems = await this.itemRepository.count();
+    const businessId = this.userContextService.getBusinessId();
+    const totalItems = await this.itemRepository.count({
+      ...(businessId && { where: { businessId } }),
+    });
 
     const stockData = await this.itemStockRepository.find({
       relations: ['item', 'item.prices', 'item.category', 'warehouse'],
+      ...(businessId && { where: { item: { businessId } } }),
     });
 
     const totalStockValue = stockData.reduce((total, stock) => {
@@ -577,25 +621,31 @@ export class ReportsService {
    */
   async getCustomerReport(filter: ReportFilterDto): Promise<CustomerReport> {
     const { startDate, endDate } = this.getDateRange(filter);
+    const businessId = this.userContextService.getBusinessId();
 
-    const totalCustomers = await this.customerRepository.count();
+    const totalCustomers = await this.customerRepository.count({
+      ...(businessId && { where: { businessId } }),
+    });
 
-    const newCustomers = await this.customerRepository
+    const newCustomersQuery = this.customerRepository
       .createQueryBuilder('customer')
       .where('customer.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
-      })
-      .getCount();
+      });
+    if (businessId) {
+      newCustomersQuery.andWhere('customer.business_id = :businessId', { businessId });
+    }
+    const newCustomers = await newCustomersQuery.getCount();
 
     const activeCustomers = await this.getActiveCustomers(
       startDate,
       endDate,
-      filter.businessId,
+      businessId,
     );
 
     // Get top customers by total spent (with phone and last order)
-    const topCustomersFromSales = await this.saleRepository
+    const topSalesQuery = this.saleRepository
       .createQueryBuilder('sale')
       .leftJoin('sale.customer', 'customer')
       .select('customer.id', 'id')
@@ -608,13 +658,17 @@ export class ReportsService {
         startDate,
         endDate,
       })
-      .andWhere('customer.id IS NOT NULL')
+      .andWhere('customer.id IS NOT NULL');
+    if (businessId) {
+      topSalesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
+    const topCustomersFromSales = await topSalesQuery
       .groupBy('customer.id')
       .addGroupBy('customer.name')
       .addGroupBy('customer.phone')
       .getRawMany();
 
-    const topCustomersFromWhatsApp = await this.whatsappOrderRepository
+    const topWhatsappQuery = this.whatsappOrderRepository
       .createQueryBuilder('wo')
       .leftJoin('wo.customer', 'customer')
       .select('customer.id', 'id')
@@ -628,7 +682,11 @@ export class ReportsService {
         endDate,
       })
       .andWhere('customer.id IS NOT NULL')
-      .andWhere('wo.status != :status', { status: 'cancelled' })
+      .andWhere('wo.status != :status', { status: 'cancelled' });
+    if (businessId) {
+      topWhatsappQuery.andWhere('wo.business_id = :businessId', { businessId });
+    }
+    const topCustomersFromWhatsApp = await topWhatsappQuery
       .groupBy('customer.id')
       .addGroupBy('customer.name')
       .addGroupBy('customer.phone')
@@ -674,24 +732,30 @@ export class ReportsService {
 
     if (customersInPeriod.length > 0) {
       // Check how many of these customers had orders before the current period
-      const salesBeforePeriod = await this.saleRepository
+      const salesBeforeQuery = this.saleRepository
         .createQueryBuilder('sale')
         .select('DISTINCT sale.customer.id', 'customerId')
         .where('sale.createdAt < :startDate', { startDate })
         .andWhere('sale.customer.id IN (:...customerIds)', {
           customerIds: customersInPeriod,
-        })
-        .getRawMany();
+        });
+      if (businessId) {
+        salesBeforeQuery.andWhere('sale.business_id = :businessId', { businessId });
+      }
+      const salesBeforePeriod = await salesBeforeQuery.getRawMany();
 
-      const whatsappBeforePeriod = await this.whatsappOrderRepository
+      const whatsappBeforeQuery = this.whatsappOrderRepository
         .createQueryBuilder('wo')
         .select('DISTINCT wo.customer.id', 'customerId')
         .where('wo.createdAt < :startDate', { startDate })
         .andWhere('wo.customer.id IN (:...customerIds)', {
           customerIds: customersInPeriod,
         })
-        .andWhere('wo.status != :status', { status: 'cancelled' })
-        .getRawMany();
+        .andWhere('wo.status != :status', { status: 'cancelled' });
+      if (businessId) {
+        whatsappBeforeQuery.andWhere('wo.business_id = :businessId', { businessId });
+      }
+      const whatsappBeforePeriod = await whatsappBeforeQuery.getRawMany();
 
       const returningCustomerIds = new Set([
         ...salesBeforePeriod.map((r) => r.customerId),
@@ -705,7 +769,7 @@ export class ReportsService {
     const totalRevenue = await this.getTotalRevenue(
       startDate,
       endDate,
-      filter.businessId,
+      businessId,
     );
     const customersWithOrders = customersInPeriod.length;
     const customerLifetimeValue =
@@ -754,27 +818,30 @@ export class ReportsService {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.getDateRange(filter);
 
+    const businessId = this.userContextService.getBusinessId();
+
     // Get total revenue for current period
     const currentRevenue = await this.getTotalRevenue(
       startDate,
       endDate,
-      filter.businessId,
+      businessId,
     );
 
     // Get total revenue for previous period
     const previousRevenue = await this.getTotalRevenue(
       previousStartDate,
       previousEndDate,
-      filter.businessId,
+      businessId,
     );
 
     // Get total expenses for current period
-    const currentExpenses = await this.getTotalExpenses(startDate, endDate);
+    const currentExpenses = await this.getTotalExpenses(startDate, endDate, businessId);
 
     // Get total expenses for previous period
     const previousExpenses = await this.getTotalExpenses(
       previousStartDate,
       previousEndDate,
+      businessId,
     );
 
     // Calculate net profit
@@ -792,6 +859,7 @@ export class ReportsService {
       startDate,
       endDate,
       currentExpenses,
+      businessId,
     );
 
     // Calculate percentage changes
@@ -857,9 +925,9 @@ export class ReportsService {
    * Calculate Cost of Goods Sold (COGS) for a date range
    * COGS = Sum of (purchaseAmount + freightAmount) * quantity for all sales
    */
-  private async getCOGS(startDate: Date, endDate: Date): Promise<number> {
+  private async getCOGS(startDate: Date, endDate: Date, businessId?: number): Promise<number> {
     // Get COGS from regular sales
-    const salesWithPrices = await this.saleRepository
+    const salesCOGSQuery = this.saleRepository
       .createQueryBuilder('sale')
       .leftJoin('sale.item', 'item')
       .leftJoin('item.prices', 'price', 'price.isActive = :isActive', {
@@ -871,8 +939,11 @@ export class ReportsService {
       .where('sale.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
-      })
-      .getRawMany();
+      });
+    if (businessId) {
+      salesCOGSQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
+    const salesWithPrices = await salesCOGSQuery.getRawMany();
 
     const salesCOGS = salesWithPrices.reduce((total, sale) => {
       const costPerUnit = Number(sale.purchaseAmount) + Number(sale.freightAmount);
@@ -880,7 +951,7 @@ export class ReportsService {
     }, 0);
 
     // Get COGS from WhatsApp orders (only delivered orders)
-    const whatsappOrders = await this.whatsappOrderRepository
+    const whatsappCOGSQuery = this.whatsappOrderRepository
       .createQueryBuilder('wo')
       .leftJoin('wo.items', 'orderItem')
       .leftJoin('orderItem.item', 'item')
@@ -894,8 +965,11 @@ export class ReportsService {
         startDate,
         endDate,
       })
-      .andWhere('wo.status = :status', { status: 'delivered' })
-      .getRawMany();
+      .andWhere('wo.status = :status', { status: 'delivered' });
+    if (businessId) {
+      whatsappCOGSQuery.andWhere('wo.business_id = :businessId', { businessId });
+    }
+    const whatsappOrders = await whatsappCOGSQuery.getRawMany();
 
     const whatsappCOGS = whatsappOrders.reduce((total, order) => {
       const costPerUnit = Number(order.purchaseAmount) + Number(order.freightAmount);
@@ -912,21 +986,25 @@ export class ReportsService {
   private async getTotalExpenses(
     startDate: Date,
     endDate: Date,
+    businessId?: number,
   ): Promise<number> {
     // Get expenses from expense table
-    const expenseResult = await this.expenseRepository
+    const expenseQuery = this.expenseRepository
       .createQueryBuilder('expense')
       .select('COALESCE(SUM(expense.amount), 0)', 'total')
       .where('expense.expenseDate BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
-      })
-      .getRawOne();
+      });
+    if (businessId) {
+      expenseQuery.andWhere('expense.business_id = :businessId', { businessId });
+    }
+    const expenseResult = await expenseQuery.getRawOne();
 
     const otherExpenses = Number(expenseResult?.total || 0);
 
     // Calculate COGS
-    const cogs = await this.getCOGS(startDate, endDate);
+    const cogs = await this.getCOGS(startDate, endDate, businessId);
 
     // Total expenses = COGS + Other Expenses
     return cogs + otherExpenses;
@@ -940,19 +1018,24 @@ export class ReportsService {
     startDate: Date,
     endDate: Date,
     totalExpenses: number,
+    businessId?: number,
   ): Promise<Array<{ category: string; amount: number; percentage: number }>> {
     // Get COGS
-    const cogs = await this.getCOGS(startDate, endDate);
+    const cogs = await this.getCOGS(startDate, endDate, businessId);
 
     // Get other expenses grouped by category
-    const expenses = await this.expenseRepository
+    const expenseBreakdownQuery = this.expenseRepository
       .createQueryBuilder('expense')
       .select('expense.category', 'category')
       .addSelect('COALESCE(SUM(expense.amount), 0)', 'amount')
       .where('expense.expenseDate BETWEEN :startDate AND :endDate', {
         startDate,
         endDate,
-      })
+      });
+    if (businessId) {
+      expenseBreakdownQuery.andWhere('expense.business_id = :businessId', { businessId });
+    }
+    const expenses = await expenseBreakdownQuery
       .groupBy('expense.category')
       .orderBy('amount', 'DESC')
       .getRawMany();
@@ -993,11 +1076,12 @@ export class ReportsService {
    */
   async getBalanceSheet(asOfDate?: Date): Promise<any> {
     const reportDate = asOfDate || new Date();
+    const businessId = this.userContextService.getBusinessId();
 
     // ========== ASSETS ==========
 
     // 1. Calculate Inventory Value (Current Stock × Purchase Price)
-    const inventoryValue = await this.calculateInventoryValue();
+    const inventoryValue = await this.calculateInventoryValue(businessId);
 
     // 2. Cash (placeholder - can be populated from cash records if tracked)
     const cash = 0; // You can add cash tracking later
@@ -1025,7 +1109,7 @@ export class ReportsService {
     // ========== EQUITY ==========
 
     // Calculate Retained Earnings (Cumulative Profit/Loss up to reportDate)
-    const retainedEarnings = await this.calculateRetainedEarnings(reportDate);
+    const retainedEarnings = await this.calculateRetainedEarnings(reportDate, businessId);
 
     // Owner's Equity (Initial Capital - calculated as balancing figure)
     // Assets = Liabilities + Equity, so: Equity = Assets - Liabilities
@@ -1059,9 +1143,10 @@ export class ReportsService {
   /**
    * Calculate total inventory value (stock on hand × purchase price)
    */
-  private async calculateInventoryValue(): Promise<number> {
+  private async calculateInventoryValue(businessId?: number): Promise<number> {
     const items = await this.itemRepository.find({
       relations: ['stock', 'prices'],
+      ...(businessId && { where: { businessId } }),
     });
 
     let totalValue = 0;
@@ -1091,12 +1176,12 @@ export class ReportsService {
   /**
    * Calculate retained earnings (cumulative profit/loss up to a date)
    */
-  private async calculateRetainedEarnings(asOfDate: Date): Promise<number> {
+  private async calculateRetainedEarnings(asOfDate: Date, businessId?: number): Promise<number> {
     // Get all revenue up to the date
-    const totalRevenue = await this.getTotalRevenueUpTo(asOfDate);
+    const totalRevenue = await this.getTotalRevenueUpTo(asOfDate, businessId);
 
     // Get all expenses up to the date (including COGS)
-    const totalExpenses = await this.getTotalExpensesUpTo(asOfDate);
+    const totalExpenses = await this.getTotalExpensesUpTo(asOfDate, businessId);
 
     // Retained Earnings = Revenue - Expenses
     return totalRevenue - totalExpenses;
@@ -1105,21 +1190,27 @@ export class ReportsService {
   /**
    * Get total revenue up to a specific date
    */
-  private async getTotalRevenueUpTo(asOfDate: Date): Promise<number> {
+  private async getTotalRevenueUpTo(asOfDate: Date, businessId?: number): Promise<number> {
     // Regular sales
-    const salesResult = await this.saleRepository
+    const salesQuery = this.saleRepository
       .createQueryBuilder('sale')
       .select('COALESCE(SUM(sale.amountPaid), 0)', 'total')
-      .where('sale.createdAt <= :asOfDate', { asOfDate })
-      .getRawOne();
+      .where('sale.createdAt <= :asOfDate', { asOfDate });
+    if (businessId) {
+      salesQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
+    const salesResult = await salesQuery.getRawOne();
 
     // WhatsApp orders (delivered only)
-    const ordersResult = await this.whatsappOrderRepository
+    const ordersQuery = this.whatsappOrderRepository
       .createQueryBuilder('order')
       .select('COALESCE(SUM(order.totalAmount), 0)', 'total')
       .where('order.createdAt <= :asOfDate', { asOfDate })
-      .andWhere('order.status = :status', { status: 'delivered' })
-      .getRawOne();
+      .andWhere('order.status = :status', { status: 'delivered' });
+    if (businessId) {
+      ordersQuery.andWhere('order.business_id = :businessId', { businessId });
+    }
+    const ordersResult = await ordersQuery.getRawOne();
 
     return Number(salesResult?.total || 0) + Number(ordersResult?.total || 0);
   }
@@ -1127,16 +1218,19 @@ export class ReportsService {
   /**
    * Get total expenses up to a specific date (including COGS)
    */
-  private async getTotalExpensesUpTo(asOfDate: Date): Promise<number> {
+  private async getTotalExpensesUpTo(asOfDate: Date, businessId?: number): Promise<number> {
     // Other expenses from expense table
-    const expensesResult = await this.expenseRepository
+    const expenseQuery = this.expenseRepository
       .createQueryBuilder('expense')
       .select('COALESCE(SUM(expense.amount), 0)', 'total')
-      .where('expense.expenseDate <= :asOfDate', { asOfDate })
-      .getRawOne();
+      .where('expense.expenseDate <= :asOfDate', { asOfDate });
+    if (businessId) {
+      expenseQuery.andWhere('expense.business_id = :businessId', { businessId });
+    }
+    const expensesResult = await expenseQuery.getRawOne();
 
     // COGS up to date
-    const cogs = await this.getCOGSUpTo(asOfDate);
+    const cogs = await this.getCOGSUpTo(asOfDate, businessId);
 
     return Number(expensesResult?.total || 0) + cogs;
   }
@@ -1144,9 +1238,9 @@ export class ReportsService {
   /**
    * Calculate COGS (Cost of Goods Sold) up to a specific date
    */
-  private async getCOGSUpTo(asOfDate: Date): Promise<number> {
+  private async getCOGSUpTo(asOfDate: Date, businessId?: number): Promise<number> {
     // COGS from regular sales
-    const salesWithPrices = await this.saleRepository
+    const salesUpToQuery = this.saleRepository
       .createQueryBuilder('sale')
       .leftJoin('sale.item', 'item')
       .leftJoin('item.prices', 'price', 'price.isActive = :isActive', {
@@ -1155,8 +1249,11 @@ export class ReportsService {
       .select('sale.quantity', 'quantity')
       .addSelect('COALESCE(price.purchaseAmount, 0)', 'purchaseAmount')
       .addSelect('COALESCE(price.freightAmount, 0)', 'freightAmount')
-      .where('sale.createdAt <= :asOfDate', { asOfDate })
-      .getRawMany();
+      .where('sale.createdAt <= :asOfDate', { asOfDate });
+    if (businessId) {
+      salesUpToQuery.andWhere('sale.business_id = :businessId', { businessId });
+    }
+    const salesWithPrices = await salesUpToQuery.getRawMany();
 
     const salesCOGS = salesWithPrices.reduce((total, sale) => {
       const costPerUnit =
@@ -1165,7 +1262,7 @@ export class ReportsService {
     }, 0);
 
     // COGS from WhatsApp orders (delivered only)
-    const ordersWithPrices = await this.whatsappOrderItemRepository
+    const ordersUpToQuery = this.whatsappOrderItemRepository
       .createQueryBuilder('orderItem')
       .leftJoin('orderItem.order', 'order')
       .leftJoin('orderItem.item', 'item')
@@ -1176,8 +1273,11 @@ export class ReportsService {
       .addSelect('COALESCE(price.purchaseAmount, 0)', 'purchaseAmount')
       .addSelect('COALESCE(price.freightAmount, 0)', 'freightAmount')
       .where('order.createdAt <= :asOfDate', { asOfDate })
-      .andWhere('order.status = :status', { status: 'delivered' })
-      .getRawMany();
+      .andWhere('order.status = :status', { status: 'delivered' });
+    if (businessId) {
+      ordersUpToQuery.andWhere('order.business_id = :businessId', { businessId });
+    }
+    const ordersWithPrices = await ordersUpToQuery.getRawMany();
 
     const ordersCOGS = ordersWithPrices.reduce((total, order) => {
       const costPerUnit =

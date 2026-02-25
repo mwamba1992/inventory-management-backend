@@ -13,6 +13,7 @@ import { CartItem } from '../interfaces/message.interface';
 @Injectable()
 export class MessageHandlerService {
   private readonly logger = new Logger(MessageHandlerService.name);
+  private currentBusinessId: number | undefined;
 
   constructor(
     private readonly sessionService: SessionService,
@@ -28,15 +29,19 @@ export class MessageHandlerService {
     phoneNumber: string,
     message: WhatsAppMessage,
     contactName?: string,
+    businessId?: number,
   ): Promise<void> {
     try {
-      this.logger.log(`Processing message from ${phoneNumber}`);
+      // Store businessId for use in private methods
+      this.currentBusinessId = businessId;
+
+      this.logger.log(`Processing message from ${phoneNumber} (businessId: ${businessId})`);
 
       // Mark message as read
       await this.whatsappApi.markMessageAsRead(message.id);
 
       // Get or create session
-      const session = await this.sessionService.getOrCreateSession(phoneNumber);
+      const session = await this.sessionService.getOrCreateSession(phoneNumber, businessId);
 
       // Ensure customer exists
       await this.ensureCustomerExists(phoneNumber, contactName);
@@ -161,6 +166,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.MAIN_MENU,
+      undefined,
+      this.currentBusinessId,
     );
 
     await this.whatsappApi.sendListMessage(
@@ -266,6 +273,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.BROWSING_CATEGORIES,
+      undefined,
+      this.currentBusinessId,
     );
 
     // Get categories from Common entity where type = 'ITEM_CATEGORY'
@@ -333,6 +342,7 @@ export class MessageHandlerService {
       {
         selectedCategoryId: categoryId,
       },
+      this.currentBusinessId,
     );
 
     const items = await this.itemService.findAll();
@@ -421,6 +431,7 @@ export class MessageHandlerService {
       {
         selectedItemId: itemId,
       },
+      this.currentBusinessId,
     );
 
     const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
@@ -469,7 +480,7 @@ export class MessageHandlerService {
       return;
     }
 
-    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const session = await this.sessionService.getOrCreateSession(phoneNumber, this.currentBusinessId);
     const itemId = session.context?.selectedItemId;
 
 
@@ -509,7 +520,7 @@ export class MessageHandlerService {
       warehouseId: stock?.warehouse?.id || 1, // Use stock's warehouse
     };
 
-    await this.sessionService.addToCart(phoneNumber, cartItem);
+    await this.sessionService.addToCart(phoneNumber, cartItem, this.currentBusinessId);
 
     await this.whatsappApi.sendButtonMessage(
       phoneNumber,
@@ -525,6 +536,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.MAIN_MENU,
+      undefined,
+      this.currentBusinessId,
     );
   }
 
@@ -532,6 +545,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.SEARCHING,
+      undefined,
+      this.currentBusinessId,
     );
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
@@ -566,6 +581,7 @@ export class MessageHandlerService {
       {
         searchQuery: query,
       },
+      this.currentBusinessId,
     );
 
     // Limit to 9 items to leave room for back button (WhatsApp limit is 10 rows)
@@ -605,6 +621,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.SEARCHING_BY_CODE,
+      undefined,
+      this.currentBusinessId,
     );
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
@@ -643,6 +661,7 @@ export class MessageHandlerService {
       {
         selectedItemId: item.id,
       },
+      this.currentBusinessId,
     );
 
     const conditionBadge = item.condition === 'used' ? '🔄 Used' : '✨ New';
@@ -678,7 +697,7 @@ export class MessageHandlerService {
   }
 
   private async showCart(phoneNumber: string): Promise<void> {
-    const cart = await this.sessionService.getCart(phoneNumber);
+    const cart = await this.sessionService.getCart(phoneNumber, this.currentBusinessId);
 
     if (cart.length === 0) {
       await this.whatsappApi.sendButtonMessage(
@@ -692,6 +711,8 @@ export class MessageHandlerService {
       await this.sessionService.updateSessionState(
         phoneNumber,
         SessionState.MAIN_MENU,
+        undefined,
+        this.currentBusinessId,
       );
       return;
     }
@@ -711,6 +732,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.CART_REVIEW,
+      undefined,
+      this.currentBusinessId,
     );
 
     await this.whatsappApi.sendButtonMessage(phoneNumber, cartMessage, [
@@ -730,7 +753,7 @@ export class MessageHandlerService {
         break;
 
       case 'clear_cart':
-        await this.sessionService.clearCart(phoneNumber);
+        await this.sessionService.clearCart(phoneNumber, this.currentBusinessId);
         await this.whatsappApi.sendTextMessage(
           phoneNumber,
           '🗑️ Cart cleared successfully!',
@@ -752,6 +775,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.ENTERING_ADDRESS,
+      undefined,
+      this.currentBusinessId,
     );
     await this.whatsappApi.sendTextMessage(
       phoneNumber,
@@ -765,13 +790,15 @@ export class MessageHandlerService {
   ): Promise<void> {
     const deliveryAddress = address.toLowerCase() === 'skip' ? '' : address;
 
-    await this.sessionService.updateContext(phoneNumber, { deliveryAddress });
+    await this.sessionService.updateContext(phoneNumber, { deliveryAddress }, this.currentBusinessId);
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.CONFIRMING_ORDER,
+      undefined,
+      this.currentBusinessId,
     );
 
-    const cart = await this.sessionService.getCart(phoneNumber);
+    const cart = await this.sessionService.getCart(phoneNumber, this.currentBusinessId);
     let total = 0;
     let orderSummary = '📋 Order Summary\n\n';
 
@@ -804,7 +831,7 @@ export class MessageHandlerService {
     }
 
     if (choice === 'confirm_order') {
-      const session = await this.sessionService.getOrCreateSession(phoneNumber);
+      const session = await this.sessionService.getOrCreateSession(phoneNumber, this.currentBusinessId);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const cart = session.context?.cart || [];
       const deliveryAddress = session.context?.deliveryAddress || '';
@@ -828,10 +855,10 @@ export class MessageHandlerService {
             quantity: item.quantity,
           })),
           deliveryAddress,
-        });
+        }, this.currentBusinessId);
 
         // Clear cart
-        await this.sessionService.clearCart(phoneNumber);
+        await this.sessionService.clearCart(phoneNumber, this.currentBusinessId);
 
         await this.whatsappApi.sendTextMessage(
           phoneNumber,
@@ -845,6 +872,8 @@ export class MessageHandlerService {
         await this.sessionService.updateSessionState(
           phoneNumber,
           SessionState.MAIN_MENU,
+          undefined,
+          this.currentBusinessId,
         );
       } catch (error) {
         this.logger.error('Error creating order:', error);
@@ -861,9 +890,11 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.TRACKING_ORDER,
+      undefined,
+      this.currentBusinessId,
     );
 
-    const orders = await this.orderService.findByPhone(phoneNumber);
+    const orders = await this.orderService.findByPhone(phoneNumber, this.currentBusinessId);
 
     if (orders.length === 0) {
       await this.whatsappApi.sendTextMessage(
@@ -873,6 +904,8 @@ export class MessageHandlerService {
       await this.sessionService.updateSessionState(
         phoneNumber,
         SessionState.MAIN_MENU,
+        undefined,
+        this.currentBusinessId,
       );
       return;
     }
@@ -944,6 +977,8 @@ export class MessageHandlerService {
     await this.sessionService.updateSessionState(
       phoneNumber,
       SessionState.MAIN_MENU,
+      undefined,
+      this.currentBusinessId,
     );
   }
 
@@ -1076,6 +1111,7 @@ export class MessageHandlerService {
         {
           selectedItemId: item.id,
         },
+        this.currentBusinessId,
       );
     } catch (error) {
       this.logger.error(`Error handling quick order: ${error.message}`, error.stack);
@@ -1111,7 +1147,7 @@ export class MessageHandlerService {
   private async showOrdersForRating(phoneNumber: string): Promise<void> {
     this.logger.log(`Showing orders for rating to ${phoneNumber}`);
 
-    const unratedOrders = await this.orderService.getDeliveredOrdersForRating(phoneNumber);
+    const unratedOrders = await this.orderService.getDeliveredOrdersForRating(phoneNumber, this.currentBusinessId);
 
     if (unratedOrders.length === 0) {
       await this.whatsappApi.sendTextMessage(
@@ -1125,6 +1161,7 @@ export class MessageHandlerService {
       phoneNumber,
       SessionState.RATING_ORDER,
       { unratedOrders: unratedOrders.map((o) => o.id) },
+      this.currentBusinessId,
     );
 
     let message = '⭐ *Rate Your Orders*\n\n';
@@ -1148,7 +1185,7 @@ export class MessageHandlerService {
       return this.showMainMenu(phoneNumber);
     }
 
-    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const session = await this.sessionService.getOrCreateSession(phoneNumber, this.currentBusinessId);
     const unratedOrderIds = session.context?.unratedOrders || [];
 
     // Check if user is selecting a star rating (1-5)
@@ -1172,6 +1209,7 @@ export class MessageHandlerService {
           orderId,
           rating,
         },
+        this.currentBusinessId,
       );
 
       const stars = '⭐'.repeat(rating);
@@ -1205,6 +1243,7 @@ export class MessageHandlerService {
         ...session.context,
         selectedOrderForRating: selectedOrderId,
       },
+      this.currentBusinessId,
     );
 
     let message = `📦 *Order #${order.orderNumber}*\n\n`;
@@ -1226,7 +1265,7 @@ export class MessageHandlerService {
   }
 
   private async handleFeedbackInput(phoneNumber: string, content: string): Promise<void> {
-    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const session = await this.sessionService.getOrCreateSession(phoneNumber, this.currentBusinessId);
     const orderId = session.context?.orderId;
     const rating = session.context?.rating;
 
@@ -1256,7 +1295,7 @@ export class MessageHandlerService {
       await this.whatsappApi.sendTextMessage(phoneNumber, message);
 
       // Check if there are more orders to rate
-      const unratedOrders = await this.orderService.getDeliveredOrdersForRating(phoneNumber);
+      const unratedOrders = await this.orderService.getDeliveredOrdersForRating(phoneNumber, this.currentBusinessId);
 
       if (unratedOrders.length > 0) {
         await this.whatsappApi.sendTextMessage(
@@ -1265,7 +1304,7 @@ export class MessageHandlerService {
         );
       }
 
-      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU, undefined, this.currentBusinessId);
     } catch (error) {
       this.logger.error(`Error saving rating: ${error.message}`, error.stack);
       await this.whatsappApi.sendTextMessage(
@@ -1281,7 +1320,7 @@ export class MessageHandlerService {
   private async showOrderHistory(phoneNumber: string): Promise<void> {
     this.logger.log(`Showing order history for ${phoneNumber}`);
 
-    const orders = await this.orderService.getOrderHistory(phoneNumber, 10);
+    const orders = await this.orderService.getOrderHistory(phoneNumber, 10, this.currentBusinessId);
 
     if (orders.length === 0) {
       await this.whatsappApi.sendTextMessage(
@@ -1295,6 +1334,7 @@ export class MessageHandlerService {
       phoneNumber,
       SessionState.VIEWING_ORDER_HISTORY,
       { orderHistory: orders.map((o) => o.id) },
+      this.currentBusinessId,
     );
 
     let message = '🔄 *Quick Reorder*\n\n';
@@ -1320,7 +1360,7 @@ export class MessageHandlerService {
       return this.showMainMenu(phoneNumber);
     }
 
-    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const session = await this.sessionService.getOrCreateSession(phoneNumber, this.currentBusinessId);
     const orderHistoryIds = session.context?.orderHistory || [];
 
     const orderIndex = parseInt(content) - 1;
@@ -1342,6 +1382,7 @@ export class MessageHandlerService {
       {
         reorderFromId: selectedOrderId,
       },
+      this.currentBusinessId,
     );
 
     let message = `🔄 *Reorder Confirmation*\n\n`;
@@ -1373,7 +1414,7 @@ export class MessageHandlerService {
       return;
     }
 
-    const session = await this.sessionService.getOrCreateSession(phoneNumber);
+    const session = await this.sessionService.getOrCreateSession(phoneNumber, this.currentBusinessId);
     const reorderFromId = session.context?.reorderFromId;
 
     if (!reorderFromId) {
@@ -1391,7 +1432,7 @@ export class MessageHandlerService {
       );
 
       // Get current cart
-      let cart = await this.sessionService.getCart(phoneNumber);
+      let cart = await this.sessionService.getCart(phoneNumber, this.currentBusinessId);
 
       // Add items from previous order to cart
       for (const item of reorderDto.items) {
@@ -1416,14 +1457,14 @@ export class MessageHandlerService {
         }
       }
 
-      await this.sessionService.updateContext(phoneNumber, { cart });
+      await this.sessionService.updateContext(phoneNumber, { cart }, this.currentBusinessId);
 
       await this.whatsappApi.sendTextMessage(
         phoneNumber,
         `✅ *Reorder Successful!*\n\n${reorderDto.items.length} items have been added to your cart.\n\nType "cart" to review your cart or "menu" for main menu.`,
       );
 
-      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU);
+      await this.sessionService.updateSessionState(phoneNumber, SessionState.MAIN_MENU, undefined, this.currentBusinessId);
     } catch (error) {
       this.logger.error(`Error processing reorder: ${error.message}`, error.stack);
       await this.whatsappApi.sendTextMessage(

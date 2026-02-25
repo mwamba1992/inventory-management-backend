@@ -12,6 +12,7 @@ import { ItemStock } from '../items/item/entities/item-stock.entity';
 import { ItemPrice } from '../items/item/entities/item-price.entity';
 import { Expense } from '../expense/entities/expense.entity';
 import { AuthModule } from '../auth/auth.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AuthModule } from '../auth/auth.module';
       Expense,
     ]),
     AuthModule,
+    SharedModule,
   ],
   controllers: [ReportsController],
   providers: [ReportsService, CatalogueService],

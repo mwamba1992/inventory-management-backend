@@ -5,14 +5,24 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Item } from '../../items/item/entities/item.entity';
 import { BaseEntity } from '../../utils/base.entity';
+import { Business } from '../../settings/business/entities/business.entity';
 
 @Entity('inventory_transactions')
 export class InventoryTransaction extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @ManyToOne(() => Item, (item) => item.transactions)
   @JoinColumn({ name: 'item_id' })

@@ -17,6 +17,7 @@ import { CustomerModule } from '../settings/customer/customer.module';
 import { WarehouseModule } from '../settings/warehouse/warehouse.module';
 import { CommonModule } from '../settings/common/common.module';
 import { SaleModule } from '../sale/sale.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SaleModule } from '../sale/sale.module';
     CustomerModule,
     WarehouseModule,
     CommonModule,
+    SharedModule,
     forwardRef(() => SaleModule), // Use forwardRef to avoid circular dependency
   ],
   controllers: [WhatsAppController],

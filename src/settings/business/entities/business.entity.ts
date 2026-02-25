@@ -28,9 +28,18 @@ export class Business extends BaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   website: string;
 
+  @Column({ nullable: true, name: 'whatsapp_phone_number_id' })
+  whatsappPhoneNumberId: string;
+
+  @Column({ nullable: true, name: 'whatsapp_access_token' })
+  whatsappAccessToken: string;
+
+  @Column({ nullable: true, name: 'admin_phone_number' })
+  adminPhoneNumber: string;
+
   @OneToMany(() => Item, (item) => item.business)
   items: Item[];
 
-  @ManyToOne(() => Common, (common) => common.items)
-  category: Business;
+  @ManyToOne(() => Common, (common) => common.businesses)
+  category: Common;
 }

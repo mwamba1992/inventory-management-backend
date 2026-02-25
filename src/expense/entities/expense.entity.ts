@@ -1,9 +1,18 @@
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Business } from '../../settings/business/entities/business.entity';
 
 @Entity()
 export class Expense extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @Column()
   title: string;

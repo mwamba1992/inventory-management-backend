@@ -42,7 +42,8 @@ export  class AuthGuard implements CanActivate {
       // Here, we save the user info to the UserContextService
       const user = {
         userId: payload.sub,
-        username: payload.username,  // Assuming `username` is in the token
+        username: payload.username,
+        businessId: payload.businessId,
       };
 
       // Save user to the UserContextService

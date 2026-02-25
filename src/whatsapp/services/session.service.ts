@@ -13,9 +13,14 @@ export class SessionService {
     private readonly sessionRepository: Repository<WhatsAppSession>,
   ) {}
 
-  async getOrCreateSession(phoneNumber: string): Promise<WhatsAppSession> {
+  async getOrCreateSession(phoneNumber: string, businessId?: number): Promise<WhatsAppSession> {
+    const whereClause: any = { phoneNumber };
+    if (businessId) {
+      whereClause.businessId = businessId;
+    }
+
     let session = await this.sessionRepository.findOne({
-      where: { phoneNumber },
+      where: whereClause,
     });
 
     if (!session) {
@@ -23,9 +28,10 @@ export class SessionService {
         phoneNumber,
         state: SessionState.MAIN_MENU,
         context: { cart: [] },
+        ...(businessId && { businessId }),
       });
       await this.sessionRepository.save(session);
-      this.logger.log(`Created new session for ${phoneNumber}`);
+      this.logger.log(`Created new session for ${phoneNumber} (businessId: ${businessId})`);
     }
 
     return session;
@@ -35,8 +41,9 @@ export class SessionService {
     phoneNumber: string,
     state: SessionState,
     context?: Partial<SessionContext>,
+    businessId?: number,
   ): Promise<WhatsAppSession> {
-    const session = await this.getOrCreateSession(phoneNumber);
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     session.state = state;
 
     if (context) {
@@ -52,8 +59,9 @@ export class SessionService {
   async updateContext(
     phoneNumber: string,
     context: Partial<SessionContext>,
+    businessId?: number,
   ): Promise<WhatsAppSession> {
-    const session = await this.getOrCreateSession(phoneNumber);
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     session.context = {
       ...session.context,
       ...context,
@@ -64,8 +72,9 @@ export class SessionService {
   async addToCart(
     phoneNumber: string,
     item: CartItem,
+    businessId?: number,
   ): Promise<WhatsAppSession> {
-    const session = await this.getOrCreateSession(phoneNumber);
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     const cart: CartItem[] = session.context?.cart || [];
 
     // Check if item already in cart
@@ -90,8 +99,9 @@ export class SessionService {
   async removeFromCart(
     phoneNumber: string,
     itemId: number,
+    businessId?: number,
   ): Promise<WhatsAppSession> {
-    const session = await this.getOrCreateSession(phoneNumber);
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     const cart: CartItem[] = session.context?.cart || [];
 
     session.context = {
@@ -102,8 +112,8 @@ export class SessionService {
     return this.sessionRepository.save(session);
   }
 
-  async clearCart(phoneNumber: string): Promise<WhatsAppSession> {
-    const session = await this.getOrCreateSession(phoneNumber);
+  async clearCart(phoneNumber: string, businessId?: number): Promise<WhatsAppSession> {
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     session.context = {
       ...session.context,
       cart: [],
@@ -111,13 +121,13 @@ export class SessionService {
     return this.sessionRepository.save(session);
   }
 
-  async getCart(phoneNumber: string): Promise<CartItem[]> {
-    const session = await this.getOrCreateSession(phoneNumber);
+  async getCart(phoneNumber: string, businessId?: number): Promise<CartItem[]> {
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     return session.context?.cart || [];
   }
 
-  async resetSession(phoneNumber: string): Promise<WhatsAppSession> {
-    const session = await this.getOrCreateSession(phoneNumber);
+  async resetSession(phoneNumber: string, businessId?: number): Promise<WhatsAppSession> {
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     session.state = SessionState.MAIN_MENU;
     session.context = { cart: [] };
     return this.sessionRepository.save(session);
@@ -126,8 +136,9 @@ export class SessionService {
   async updateLastMessageId(
     phoneNumber: string,
     messageId: string,
+    businessId?: number,
   ): Promise<void> {
-    const session = await this.getOrCreateSession(phoneNumber);
+    const session = await this.getOrCreateSession(phoneNumber, businessId);
     session.lastMessageId = messageId;
     await this.sessionRepository.save(session);
   }

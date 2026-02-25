@@ -33,7 +33,4 @@ export class ReportFilterDto {
   @IsOptional()
   @IsEnum(ReportType)
   reportType?: ReportType;
-
-  @IsOptional()
-  businessId?: number;
 }

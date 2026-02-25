@@ -8,37 +8,45 @@ import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
 import { Warehouse } from './entities/warehouse.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { UserContextService } from '../../auth/user/dto/user.context';
 
 @Injectable()
 export class WarehouseService {
   constructor(
     @InjectRepository(Warehouse)
     private readonly warehouseRepository: Repository<Warehouse>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async create(createWarehouseDto: CreateWarehouseDto): Promise<Warehouse> {
-    // Check if warehouse with same name already exists
+    const businessId = this.userContextService.getBusinessId();
+
+    // Check if warehouse with same name already exists within this business
     const existingWarehouse = await this.warehouseRepository.findOne({
-      where: { name: createWarehouseDto.name },
+      where: { name: createWarehouseDto.name, businessId },
     });
 
     if (existingWarehouse) {
       throw new ConflictException('Warehouse with this name already exists');
     }
 
-    const warehouse = this.warehouseRepository.create(createWarehouseDto);
+    const warehouse = this.warehouseRepository.create({
+      ...createWarehouseDto,
+      businessId,
+    });
     return await this.warehouseRepository.save(warehouse);
   }
 
   async findAll(): Promise<Warehouse[]> {
     return await this.warehouseRepository.find({
+      where: { businessId: this.userContextService.getBusinessId() },
       order: { createdAt: 'DESC' },
     });
   }
 
   async findOne(id: number): Promise<Warehouse> {
     const warehouse = await this.warehouseRepository.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
     });
 
     if (!warehouse) {
@@ -52,12 +60,13 @@ export class WarehouseService {
     id: number,
     updateWarehouseDto: UpdateWarehouseDto,
   ): Promise<Warehouse> {
+    const businessId = this.userContextService.getBusinessId();
     const warehouse = await this.findOne(id);
 
     // Check if name is being updated and if new name already exists
     if (updateWarehouseDto.name && updateWarehouseDto.name !== warehouse.name) {
       const existingWarehouse = await this.warehouseRepository.findOne({
-        where: { name: updateWarehouseDto.name },
+        where: { name: updateWarehouseDto.name, businessId },
       });
 
       if (existingWarehouse) {
@@ -76,13 +85,16 @@ export class WarehouseService {
 
   async findByName(name: string): Promise<Warehouse | null> {
     return await this.warehouseRepository.findOne({
-      where: { name },
+      where: { name, businessId: this.userContextService.getBusinessId() },
     });
   }
 
   async findActive(): Promise<Warehouse[]> {
     return await this.warehouseRepository.find({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        businessId: this.userContextService.getBusinessId(),
+      },
       order: { name: 'ASC' },
     });
   }

@@ -6,13 +6,23 @@ import {
   OneToMany,
   JoinColumn,
   BaseEntity,
+  Index,
 } from 'typeorm';
 import { Common } from '../../../settings/common/entities/common.entity';
+import { Business } from '../../../settings/business/entities/business.entity';
 
 @Entity({ name: 'accounts' })
 export class Account extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @ManyToOne(() => Common, (common) => common.id)
   code: Common | null;

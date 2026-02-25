@@ -9,6 +9,7 @@ import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { Role } from '../role/entities/role.entity';
 import { decodePassword, encodePassword } from '../../utils/helper.utils';
+import { UserContextService } from './dto/user.context';
 
 @Injectable()
 export class UserService {
@@ -17,6 +18,7 @@ export class UserService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -67,6 +69,7 @@ export class UserService {
       user.name = createUserDto.name;
       user.username = createUserDto.username;
       user.address = '';
+      user.businessId = this.userContextService.getBusinessId();
 
       const roleList: Role[] = [];
 
@@ -89,6 +92,7 @@ export class UserService {
 
   async findAll(): Promise<User[]> {
     const users = await this.userRepository.find({
+      where: { businessId: this.userContextService.getBusinessId() },
       relations: ['rolesList'],
       order: {
         createdAt: 'DESC',
@@ -99,7 +103,7 @@ export class UserService {
 
   async findOne(id: number) {
     const user = await this.userRepository.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
       relations: ['rolesList'],
     });
     if (!user) {

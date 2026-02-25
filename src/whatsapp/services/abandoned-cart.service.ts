@@ -18,9 +18,10 @@ export class AbandonedCartService {
   /**
    * Check for abandoned carts every hour
    * Runs at the start of every hour
+   * Processes all businesses (cron job context has no specific businessId)
    */
   @Cron(CronExpression.EVERY_HOUR)
-  async checkAbandonedCarts() {
+  async checkAbandonedCarts(businessId?: number) {
     this.logger.log('Checking for abandoned carts...');
 
     try {
@@ -33,7 +34,8 @@ export class AbandonedCartService {
       // 2. Not in checkout states
       // 3. Updated more than 24 hours ago
       // 4. Either never sent reminder OR last reminder was > 24 hours ago
-      const abandonedSessions = await this.sessionRepository
+      // 5. Optionally scoped by businessId
+      const queryBuilder = this.sessionRepository
         .createQueryBuilder('session')
         .where('session.updatedAt < :twentyFourHoursAgo', { twentyFourHoursAgo })
         .andWhere('session.state NOT IN (:...checkoutStates)', {
@@ -48,8 +50,14 @@ export class AbandonedCartService {
         .andWhere(
           '(session.lastCartReminderAt IS NULL OR session.lastCartReminderAt < :twentyFourHoursAgo)',
           { twentyFourHoursAgo },
-        )
-        .getMany();
+        );
+
+      // Scope by businessId if provided
+      if (businessId) {
+        queryBuilder.andWhere('session.business_id = :businessId', { businessId });
+      }
+
+      const abandonedSessions = await queryBuilder.getMany();
 
       this.logger.log(`Found ${abandonedSessions.length} abandoned carts`);
 
@@ -98,7 +106,7 @@ export class AbandonedCartService {
       session.lastCartReminderAt = new Date();
       await this.sessionRepository.save(session);
 
-      this.logger.log(`Sent abandoned cart reminder to ${session.phoneNumber}`);
+      this.logger.log(`Sent abandoned cart reminder to ${session.phoneNumber} (businessId: ${session.businessId})`);
     } catch (error) {
       this.logger.error(
         `Failed to send abandoned cart reminder to ${session.phoneNumber}: ${error.message}`,
@@ -110,9 +118,9 @@ export class AbandonedCartService {
   /**
    * Manual trigger for testing (can be called from controller)
    */
-  async triggerAbandonedCartCheck(): Promise<{ sent: number; message: string }> {
+  async triggerAbandonedCartCheck(businessId?: number): Promise<{ sent: number; message: string }> {
     this.logger.log('Manual trigger: Checking for abandoned carts');
-    await this.checkAbandonedCarts();
+    await this.checkAbandonedCarts(businessId);
     return {
       sent: 0, // You can track this if needed
       message: 'Abandoned cart check triggered',

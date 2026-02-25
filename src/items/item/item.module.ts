@@ -16,6 +16,7 @@ import { ItemSupplier } from '../../settings/item-suppliers/entities/item-suppli
 import { ColorCategory } from '../../settings/color-category/entities/color-category.entity';
 import { Brand } from '../../settings/brand/entities/brand.entity';
 import { CloudinaryService } from './services/cloudinary.service';
+import { SharedModule } from '../../shared/shared.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CloudinaryService } from './services/cloudinary.service';
       ColorCategory,
       Brand
     ]),
+    SharedModule,
   ],
   controllers: [ItemController],
   providers: [ItemService, CloudinaryService],

@@ -1,7 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, Index, Unique } from 'typeorm';
 import { Customer } from '../../settings/customer/entities/customer.entity';
 import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { WhatsAppOrderItem } from './whatsapp-order-item.entity';
+import { Business } from '../../settings/business/entities/business.entity';
 
 export enum OrderStatus {
   PENDING = 'pending',
@@ -34,12 +35,21 @@ export enum PaymentStatus {
 }
 
 @Entity('whatsapp_orders')
+@Unique(['orderNumber', 'businessId'])
 export class WhatsAppOrder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'order_number', unique: true })
+  @Column({ name: 'order_number' })
   orderNumber: string;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @Column({ name: 'customer_phone' })
   customerPhone: string;

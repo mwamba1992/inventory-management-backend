@@ -1,7 +1,8 @@
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../../utils/base.entity';
 import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
 import { Role } from '../../role/entities/role.entity';
+import { Business } from '../../../settings/business/entities/business.entity';
 
 @Entity()
 export class User extends BaseEntity{
@@ -9,6 +10,14 @@ export class User extends BaseEntity{
   @Column({ unique: true, name: 'username', nullable: false })
   @IsString()
   username: string;
+
+  @ManyToOne(() => Business, { nullable: true, eager: false })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @Column({ nullable: true, name: 'check_number' })
   @IsString()

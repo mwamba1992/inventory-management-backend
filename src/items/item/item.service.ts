@@ -23,6 +23,7 @@ import { Warehouse } from '../../settings/warehouse/entities/warehouse.entity';
 import { ItemSupplier } from '../../settings/item-suppliers/entities/item-supplier.entity';
 import { ColorCategory } from '../../settings/color-category/entities/color-category.entity';
 import { Brand } from '../../settings/brand/entities/brand.entity';
+import { UserContextService } from '../../auth/user/dto/user.context';
 
 @Injectable()
 export class ItemService {
@@ -51,6 +52,7 @@ export class ItemService {
     private readonly colorCategoryRepository: Repository<ColorCategory>,
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async create(createItemDto: CreateItemDto): Promise<Item> {
@@ -96,14 +98,13 @@ export class ItemService {
       });
     }
 
-    item.business = await this.businessRepository.findOneByOrFail({
-      id: createItemDto.businessId,
-    });
+    item.businessId = this.userContextService.getBusinessId();
     return this.itemRepository.save(item);
   }
 
   async findAll(): Promise<Item[]> {
     return this.itemRepository.find({
+      where: { businessId: this.userContextService.getBusinessId() },
       relations: [
         'category',
         'subcategory',
@@ -121,7 +122,7 @@ export class ItemService {
 
   async findOne(id: number): Promise<Item> {
     const item = await this.itemRepository.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
       relations: [
         'category',
         'subcategory',
@@ -141,8 +142,9 @@ export class ItemService {
 
   async update(id: number, updateItemDto: UpdateItemDto): Promise<Item> {
     console.log(updateItemDto);
+    const businessId = this.userContextService.getBusinessId();
     const item = await this.itemRepository.findOne({
-      where: { id },
+      where: { id, businessId },
     });
     if (!item) throw new Error('Item not found');
 
@@ -177,11 +179,8 @@ export class ItemService {
       });
     }
 
-    if (updateItemDto.businessId) {
-      item.business = await this.businessRepository.findOneByOrFail({
-        id: updateItemDto.businessId,
-      });
-    }
+    // Ensure businessId stays scoped to the authenticated user's business
+    item.businessId = businessId;
 
     // Update other scalar properties
     if (updateItemDto.name !== undefined) item.name = updateItemDto.name;
@@ -202,7 +201,7 @@ export class ItemService {
     createItemPriceDto: CreateItemPriceDto,
   ): Promise<ItemPrice> {
     const item = await this.itemRepository.findOne({
-      where: { id: createItemPriceDto.itemId },
+      where: { id: createItemPriceDto.itemId, businessId: this.userContextService.getBusinessId() },
     });
     if (!item) throw new Error('Item not found');
     const itemPrice = this.itemPriceRepository.create({
@@ -213,12 +212,15 @@ export class ItemService {
   }
 
   async findAllItemPrices(): Promise<ItemPrice[]> {
-    return this.itemPriceRepository.find({ relations: ['item'] });
+    return this.itemPriceRepository.find({
+      where: { item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item'],
+    });
   }
 
   async findOneItemPrice(id: number): Promise<ItemPrice> {
     const itemPrice = await this.itemPriceRepository.findOne({
-      where: { id },
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
       relations: ['item'],
     });
     if (!itemPrice) throw new Error('ItemPrice not found');
@@ -229,11 +231,14 @@ export class ItemService {
     id: number,
     updateItemPriceDto: UpdateItemPriceDto,
   ): Promise<ItemPrice> {
-    const itemPrice = await this.itemPriceRepository.findOne({ where: { id } });
+    const itemPrice = await this.itemPriceRepository.findOne({
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item'],
+    });
     if (!itemPrice) throw new Error('ItemPrice not found');
     if (updateItemPriceDto.itemId) {
       const item = await this.itemRepository.findOne({
-        where: { id: updateItemPriceDto.itemId },
+        where: { id: updateItemPriceDto.itemId, businessId: this.userContextService.getBusinessId() },
       });
       if (!item) throw new Error('Item not found');
       itemPrice.item = item;
@@ -250,7 +255,7 @@ export class ItemService {
     createItemStockDto: CreateItemStockDto,
   ): Promise<ItemStock> {
     const item = await this.itemRepository.findOne({
-      where: { id: createItemStockDto.itemId },
+      where: { id: createItemStockDto.itemId, businessId: this.userContextService.getBusinessId() },
     });
     if (!item) throw new Error('Item not found');
     const warehouse = await this.wareHouseRepository.findOne({
@@ -267,12 +272,15 @@ export class ItemService {
   }
 
   async findAllItemStocks(): Promise<ItemStock[]> {
-    return this.itemStockRepository.find({ relations: ['item', 'warehouse', 'distributions', 'distributions.colorCategory'] });
+    return this.itemStockRepository.find({
+      where: { item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item', 'warehouse', 'distributions', 'distributions.colorCategory'],
+    });
   }
 
   async findOneItemStock(id: number): Promise<ItemStock> {
     const itemStock = await this.itemStockRepository.findOne({
-      where: { id },
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
       relations: ['item', 'warehouse', 'distributions', 'distributions.colorCategory'],
     });
     if (!itemStock) throw new Error('ItemStock not found');
@@ -283,11 +291,14 @@ export class ItemService {
     id: number,
     updateItemStockDto: UpdateItemStockDto,
   ): Promise<ItemStock> {
-    const itemStock = await this.itemStockRepository.findOne({ where: { id } });
+    const itemStock = await this.itemStockRepository.findOne({
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item'],
+    });
     if (!itemStock) throw new Error('ItemStock not found');
     if (updateItemStockDto.itemId) {
       const item = await this.itemRepository.findOne({
-        where: { id: updateItemStockDto.itemId },
+        where: { id: updateItemStockDto.itemId, businessId: this.userContextService.getBusinessId() },
       });
       if (!item) throw new Error('Item not found');
       itemStock.item = item;
@@ -334,13 +345,14 @@ export class ItemService {
 
   async findAllItemStockDistributions(): Promise<ItemStockDistribution[]> {
     return this.itemStockDistributionRepository.find({
+      where: { itemStock: { item: { businessId: this.userContextService.getBusinessId() } } },
       relations: ['itemStock', 'itemStock.item', 'colorCategory'],
     });
   }
 
   async findOneItemStockDistribution(id: number): Promise<ItemStockDistribution> {
     const distribution = await this.itemStockDistributionRepository.findOne({
-      where: { id },
+      where: { id, itemStock: { item: { businessId: this.userContextService.getBusinessId() } } },
       relations: ['itemStock', 'itemStock.item', 'colorCategory'],
     });
     if (!distribution) throw new Error('ItemStockDistribution not found');
@@ -352,7 +364,8 @@ export class ItemService {
     updateDto: UpdateItemStockDistributionDto,
   ): Promise<ItemStockDistribution> {
     const distribution = await this.itemStockDistributionRepository.findOne({
-      where: { id },
+      where: { id, itemStock: { item: { businessId: this.userContextService.getBusinessId() } } },
+      relations: ['itemStock', 'itemStock.item'],
     });
     if (!distribution) throw new Error('ItemStockDistribution not found');
 
@@ -384,7 +397,7 @@ export class ItemService {
     createDto: CreateItemAccountMappingDto,
   ): Promise<ItemAccountMapping> {
     const item = await this.itemRepository.findOne({
-      where: { id: createDto.itemId },
+      where: { id: createDto.itemId, businessId: this.userContextService.getBusinessId() },
     });
     if (!item) throw new Error('Item not found');
     const saleAccount = await this.accountRepository.findOne({
@@ -410,6 +423,7 @@ export class ItemService {
 
   async findAllItemAccountMappings(): Promise<ItemAccountMapping[]> {
     return this.itemAccountMappingRepository.find({
+      where: { item: { businessId: this.userContextService.getBusinessId() } },
       relations: [
         'item',
         'saleAccount',
@@ -421,7 +435,7 @@ export class ItemService {
 
   async findOneItemAccountMapping(id: number): Promise<ItemAccountMapping> {
     const mapping = await this.itemAccountMappingRepository.findOne({
-      where: { id },
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
       relations: [
         'item',
         'saleAccount',
@@ -438,12 +452,13 @@ export class ItemService {
     updateDto: UpdateItemAccountMappingDto,
   ): Promise<ItemAccountMapping> {
     const mapping = await this.itemAccountMappingRepository.findOne({
-      where: { id },
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item'],
     });
     if (!mapping) throw new Error('ItemAccountMapping not found');
     if (updateDto.itemId) {
       const item = await this.itemRepository.findOne({
-        where: { id: updateDto.itemId },
+        where: { id: updateDto.itemId, businessId: this.userContextService.getBusinessId() },
       });
       if (!item) throw new Error('Item not found');
       mapping.item = item;
@@ -478,14 +493,19 @@ export class ItemService {
   }
 
   async getTotalNumberOfItemsInStock(): Promise<number> {
-    const items = await this.itemStockRepository.find();
+    const items = await this.itemStockRepository.find({
+      where: { item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item'],
+    });
     return items.reduce((total, item) => total + item.quantity, 0);
   }
 
   async itemsWithLowStocksCount(): Promise<number> {
     const lowStockItems = await this.itemStockRepository
       .createQueryBuilder('stock')
+      .innerJoin('stock.item', 'item')
       .where('stock.quantity <= stock.reorderPoint')
+      .andWhere('item.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .getMany();
 
     return lowStockItems.length;
@@ -493,6 +513,7 @@ export class ItemService {
 
   async getItemsStockValue() {
     const items = await this.itemStockRepository.find({
+      where: { item: { businessId: this.userContextService.getBusinessId() } },
       relations: ['item', 'item.prices'],
     });
 
@@ -512,6 +533,7 @@ export class ItemService {
     const lastItem = await this.itemRepository
       .createQueryBuilder('item')
       .where("item.code LIKE 'PROD-%'")
+      .andWhere('item.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .orderBy("item.code", 'DESC')
       .getOne();
 

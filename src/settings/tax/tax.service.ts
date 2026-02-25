@@ -3,25 +3,34 @@ import { CreateTaxDto } from './dto/create-tax.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Tax } from './entities/tax.entity';
 import { Repository } from 'typeorm';
+import { UserContextService } from '../../auth/user/dto/user.context';
 
 @Injectable()
 export class TaxService {
   constructor(
     @InjectRepository(Tax)
     private readonly taxRepository: Repository<Tax>,
+    private readonly userContextService: UserContextService,
   ) {}
 
   async create(createTaxDto: CreateTaxDto): Promise<Tax> {
-    const tax = this.taxRepository.create(createTaxDto);
+    const tax = this.taxRepository.create({
+      ...createTaxDto,
+      businessId: this.userContextService.getBusinessId(),
+    });
     return this.taxRepository.save(tax);
   }
 
   findAll(): Promise<Tax[]> {
-    return this.taxRepository.find();
+    return this.taxRepository.find({
+      where: { businessId: this.userContextService.getBusinessId() },
+    });
   }
 
   async findOne(id: number): Promise<Tax> {
-    const tax = await this.taxRepository.findOne({ where: { id } });
+    const tax = await this.taxRepository.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+    });
     if (!tax) throw new NotFoundException(`Tax with ID ${id} not found`);
     return tax;
   }

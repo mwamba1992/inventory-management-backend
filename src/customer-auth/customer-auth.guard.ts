@@ -35,6 +35,7 @@ export class CustomerAuthGuard implements CanActivate {
         id: payload.sub,
         phone: payload.phone,
         name: payload.name,
+        businessId: payload.businessId,
       };
     } catch {
       throw new UnauthorizedException('Invalid or expired token');

@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, Unique } from 'typeorm';
 
 export enum SessionState {
   MAIN_MENU = 'main_menu',
@@ -17,13 +17,24 @@ export enum SessionState {
   SELECTING_REORDER = 'selecting_reorder',
 }
 
+import { Business } from '../../settings/business/entities/business.entity';
+
 @Entity('whatsapp_sessions')
+@Unique(['phoneNumber', 'businessId'])
 export class WhatsAppSession {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'phone_number', unique: true })
+  @Column({ name: 'phone_number' })
   phoneNumber: string;
+
+  @ManyToOne(() => Business, { nullable: true })
+  @JoinColumn({ name: 'business_id' })
+  @Index()
+  business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @Column({
     type: 'enum',

@@ -1,16 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 
-@Injectable()
+export interface UserContext {
+  userId: number;
+  username: string;
+  businessId: number;
+}
+
+@Injectable({ scope: Scope.REQUEST })
 export class UserContextService {
-  private user: any;  // You can replace `any` with the appropriate type based on your payload
+  private user: UserContext;
 
-  // Set user data (called by JWT strategy)
-  setUser(user: any) {
+  setUser(user: UserContext) {
     this.user = user;
   }
 
-  // Get user data
-  getUser(): any {
+  getUser(): UserContext {
     return this.user;
+  }
+
+  getBusinessId(): number {
+    return this.user?.businessId;
   }
 }

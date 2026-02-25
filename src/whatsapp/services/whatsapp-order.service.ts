@@ -16,6 +16,7 @@ import { WarehouseService } from '../../settings/warehouse/warehouse.service';
 import { SaleService } from '../../sale/sale.service';
 import { WhatsAppApiService } from './whatsapp-api.service';
 import { OrderNotificationService } from './order-notification.service';
+import { UserContextService } from '../../auth/user/dto/user.context';
 
 @Injectable()
 export class WhatsAppOrderService {
@@ -32,10 +33,17 @@ export class WhatsAppOrderService {
     private readonly saleService: SaleService,
     private readonly whatsappApi: WhatsAppApiService,
     private readonly orderNotificationService: OrderNotificationService,
+    private readonly userContextService: UserContextService,
   ) {}
 
-  async createOrder(dto: CreateWhatsAppOrderDto): Promise<WhatsAppOrder> {
+  /**
+   * Create order from WhatsApp bot (webhook context - businessId passed as parameter)
+   */
+  async createOrder(dto: CreateWhatsAppOrderDto, businessId?: number): Promise<WhatsAppOrder> {
     this.logger.log(`Creating order for ${dto.customerPhone}`);
+
+    // Resolve businessId: parameter takes priority, then UserContextService
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
 
     // Validate warehouse
     const warehouse = await this.warehouseService.findOne(dto.warehouseId);
@@ -101,6 +109,7 @@ export class WhatsAppOrderService {
       status: OrderStatus.PENDING,
       deliveryAddress: dto.deliveryAddress,
       notes: dto.notes,
+      ...(resolvedBusinessId && { businessId: resolvedBusinessId }),
     });
 
     const savedOrder = await this.orderRepository.save(order);
@@ -115,8 +124,11 @@ export class WhatsAppOrderService {
   /**
    * Create e-commerce order from website
    */
-  async createEcommerceOrder(dto: CreateEcommerceOrderDto): Promise<WhatsAppOrder> {
+  async createEcommerceOrder(dto: CreateEcommerceOrderDto, businessId?: number): Promise<WhatsAppOrder> {
     this.logger.log(`Creating e-commerce order for ${dto.customerPhone}`);
+
+    // Resolve businessId: parameter takes priority, then UserContextService
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
 
     // Validate warehouse
     const warehouse = await this.warehouseService.findOne(dto.warehouseId);
@@ -202,6 +214,7 @@ export class WhatsAppOrderService {
       paymentStatus: PaymentStatus.PENDING,
       deliveryAddress: dto.deliveryAddress,
       notes: dto.notes,
+      ...(resolvedBusinessId && { businessId: resolvedBusinessId }),
     });
 
     const savedOrder = await this.orderRepository.save(order);
@@ -251,15 +264,23 @@ export class WhatsAppOrderService {
   }
 
   async findAll(): Promise<WhatsAppOrder[]> {
+    const businessId = this.userContextService.getBusinessId();
     return this.orderRepository.find({
+      where: {
+        ...(businessId && { businessId }),
+      },
       relations: ['customer', 'warehouse', 'items', 'items.item'],
       order: { createdAt: 'DESC' },
     });
   }
 
   async findOne(id: number): Promise<WhatsAppOrder> {
+    const businessId = this.userContextService.getBusinessId();
     const order = await this.orderRepository.findOne({
-      where: { id },
+      where: {
+        id,
+        ...(businessId && { businessId }),
+      },
       relations: ['customer', 'warehouse', 'items', 'items.item'],
     });
 
@@ -270,9 +291,13 @@ export class WhatsAppOrderService {
     return order;
   }
 
-  async findByPhone(phoneNumber: string): Promise<WhatsAppOrder[]> {
+  async findByPhone(phoneNumber: string, businessId?: number): Promise<WhatsAppOrder[]> {
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
     return this.orderRepository.find({
-      where: { customerPhone: phoneNumber },
+      where: {
+        customerPhone: phoneNumber,
+        ...(resolvedBusinessId && { businessId: resolvedBusinessId }),
+      },
       relations: ['customer', 'warehouse', 'items', 'items.item'],
       order: { createdAt: 'DESC' },
     });
@@ -447,7 +472,7 @@ export class WhatsAppOrderService {
     }
   }
 
-  async cancelOrder(id: number): Promise<WhatsAppOrder> {
+  async cancelOrder(id: number, businessId?: number): Promise<WhatsAppOrder> {
     const order = await this.findOne(id);
     const previousStatus = order.status;
 
@@ -510,7 +535,7 @@ export class WhatsAppOrderService {
     return `${prefix}${year}${month}${day}${sequence}`;
   }
 
-  async getOrderStats(): Promise<any> {
+  async getOrderStats(businessId?: number): Promise<any> {
     const orders = await this.findAll();
 
     const stats = {
@@ -562,13 +587,15 @@ export class WhatsAppOrderService {
     return updatedOrder;
   }
 
-  async getDeliveredOrdersForRating(phoneNumber: string): Promise<WhatsAppOrder[]> {
+  async getDeliveredOrdersForRating(phoneNumber: string, businessId?: number): Promise<WhatsAppOrder[]> {
     this.logger.log(`Getting unrated delivered orders for ${phoneNumber}`);
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
 
     const orders = await this.orderRepository.find({
       where: {
         customerPhone: phoneNumber,
         status: OrderStatus.DELIVERED,
+        ...(resolvedBusinessId && { businessId: resolvedBusinessId }),
       },
       order: {
         deliveredAt: 'DESC',
@@ -587,12 +614,15 @@ export class WhatsAppOrderService {
   async getOrderHistory(
     phoneNumber: string,
     limit: number = 10,
+    businessId?: number,
   ): Promise<WhatsAppOrder[]> {
     this.logger.log(`Getting order history for ${phoneNumber}`);
+    const resolvedBusinessId = businessId || this.userContextService.getBusinessId();
 
     const orders = await this.orderRepository.find({
       where: {
         customerPhone: phoneNumber,
+        ...(resolvedBusinessId && { businessId: resolvedBusinessId }),
       },
       order: {
         createdAt: 'DESC',

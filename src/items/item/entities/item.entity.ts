@@ -4,6 +4,8 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  JoinColumn,
+  Index,
 } from 'typeorm';
 import { BaseEntity } from '../../../utils/base.entity';
 import { Common } from '../../../settings/common/entities/common.entity';
@@ -61,7 +63,12 @@ export class Item extends BaseEntity {
   brand: Brand;
 
   @ManyToOne(() => Business, (business) => business.items)
+  @JoinColumn({ name: 'business_id' })
+  @Index()
   business: Business;
+
+  @Column({ name: 'business_id', nullable: true })
+  businessId: number;
 
   @OneToMany(() => InventoryTransaction, (inventory) => inventory.item)
   transactions: InventoryTransaction[];

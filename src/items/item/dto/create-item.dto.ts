@@ -36,9 +36,6 @@ export class CreateItemDto {
   brandId: number;
 
   @IsNotEmpty()
-  businessId: number;
-
-  @IsNotEmpty()
   purchaseAmountId: number;
 
   @IsNotEmpty()

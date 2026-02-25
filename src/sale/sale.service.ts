@@ -17,6 +17,7 @@ import { Item } from '../items/item/entities/item.entity';
 import { Warehouse } from '../settings/warehouse/entities/warehouse.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
 import { OrderNotificationService } from '../whatsapp/services/order-notification.service';
+import { UserContextService } from '../auth/user/dto/user.context';
 
 
 @Injectable()
@@ -36,6 +37,7 @@ export class SaleService {
     private readonly itemStockRepo: Repository<ItemStock>,
     @Inject(forwardRef(() => OrderNotificationService))
     private readonly orderNotificationService: OrderNotificationService,
+    private readonly userContextService: UserContextService,
   ) {}
 
   // sale.service.ts
@@ -77,6 +79,7 @@ export class SaleService {
       quantity: quantity,
       amountPaid: dto.amountPaid,
       remarks: dto.remarks,
+      businessId: this.userContextService.getBusinessId(),
       createdAt: new Date(), // createdAt
       updatedAt: new Date(), // updatedAt
     });
@@ -84,17 +87,21 @@ export class SaleService {
   }
 
   findAll() {
-    return this.saleRepo.find();
+    return this.saleRepo.find({
+      where: { businessId: this.userContextService.getBusinessId() },
+    });
   }
 
   async findOne(id: number) {
-    const sale = await this.saleRepo.findOne({ where: { id } });
+    const sale = await this.saleRepo.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+    });
     if (!sale) throw new NotFoundException('Sale not found');
     return sale;
   }
 
   async update(id: number, dto: UpdateSaleDto) {
-    await this.findOne(id);
+    const sale = await this.findOne(id); // already scoped by businessId
     const customer = dto.customerId
       ? await this.customerRepo.findOneBy({ id: dto.customerId })
       : undefined;
@@ -117,7 +124,7 @@ export class SaleService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    await this.findOne(id); // already scoped by businessId
     await this.saleRepo.delete(id);
   }
 
@@ -130,7 +137,7 @@ export class SaleService {
 
     // Find sale with all relations
     const sale = await this.saleRepo.findOne({
-      where: { id },
+      where: { id, businessId: this.userContextService.getBusinessId() },
       relations: ['customer', 'item', 'warehouseId'],
     });
 
@@ -185,6 +192,7 @@ export class SaleService {
 
   async fetchRecentSales(limit: number = 10) {
     const sales = await this.saleRepo.find({
+      where: { businessId: this.userContextService.getBusinessId() },
       order: { createdAt: 'DESC' },
       take: limit,
       relations: ['customer', 'item', 'warehouseId'],
@@ -202,6 +210,7 @@ export class SaleService {
     const total = await this.saleRepo
       .createQueryBuilder('sale')
       .select('SUM(sale.amountPaid)', 'totalSales')
+      .where('sale.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .getRawOne();
 
     if (!total) {
@@ -215,7 +224,9 @@ export class SaleService {
   }
 
   async totalSaleCount() {
-    return await this.saleRepo.count();
+    return await this.saleRepo.count({
+      where: { businessId: this.userContextService.getBusinessId() },
+    });
   }
 
   async weeklySalesTrends() {
@@ -229,6 +240,7 @@ export class SaleService {
       .andWhere(
         `sale."createdAt" < DATE_TRUNC('week', NOW() + INTERVAL '1 day') + INTERVAL '6 days'`,
       )
+      .andWhere('sale.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .groupBy('day')
       .orderBy(`MIN(sale."createdAt")`, 'ASC')
       .getRawMany();
@@ -265,6 +277,7 @@ export class SaleService {
       .select('sale.item_id', 'itemid')
       .addSelect('SUM(sale.amountPaid)', 'totalsales')
       .addSelect('SUM(sale.quantity)', 'totalquantity') // include total quantity sold
+      .where('sale.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .groupBy('sale.item_id')
       .orderBy('totalsales', 'DESC')
       .limit(limit)
@@ -300,12 +313,15 @@ export class SaleService {
       `Fetching sales metrics from ${startDate.toISOString()} to now`,
     );
 
+    const businessId = this.userContextService.getBusinessId();
+
     const sales = await this.saleRepo
       .createQueryBuilder('sale')
       .select('DATE(sale.createdAt)', 'date')
       .addSelect('SUM(sale.amountPaid)', 'totalSales')
       .addSelect('COUNT(sale.id)', 'totalCount')
       .where('sale.createdAt >= :startDate', { startDate })
+      .andWhere('sale.business_id = :businessId', { businessId })
       .groupBy('date')
       .orderBy('date', 'ASC')
       .getRawMany();
@@ -317,6 +333,7 @@ export class SaleService {
       .addSelect('COUNT(sale.id)', 'totalCount')
       .where('sale.createdAt >= :growthStartDate', { growthStartDate })
       .andWhere('sale.createdAt < :startDate', { startDate })
+      .andWhere('sale.business_id = :businessId', { businessId })
       .groupBy('date')
       .orderBy('date', 'ASC')
       .getRawMany();
@@ -363,6 +380,7 @@ export class SaleService {
     const sales = await this.saleRepo.find({
       where: {
         createdAt: MoreThanOrEqual(startDate),
+        businessId: this.userContextService.getBusinessId(),
       },
       relations: ['customer', 'item', 'warehouseId'],
       order: { createdAt: 'DESC' },
@@ -373,7 +391,9 @@ export class SaleService {
   }
 
   async findSalesByDateRange(startDate?: string, endDate?: string): Promise<Sale[]> {
-    let whereCondition: any = {};
+    let whereCondition: any = {
+      businessId: this.userContextService.getBusinessId(),
+    };
 
     if (startDate && endDate) {
       const start = new Date(startDate);
