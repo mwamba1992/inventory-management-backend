@@ -3,15 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import { Constants } from '../utils/constants';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
-import { UserContextService } from './user/dto/user.context';
 
 
 
 @Injectable()
 export  class AuthGuard implements CanActivate {
 
-  constructor(private jwtService: JwtService, private readonly reflector: Reflector,
-              private readonly userContextService: UserContextService) {}
+  constructor(private jwtService: JwtService, private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
 
@@ -38,16 +36,6 @@ export  class AuthGuard implements CanActivate {
       // 💡 We're assigning the payload to the request object here
       // so that we can access it in our route handlers
       request['user'] = payload;
-
-      // Here, we save the user info to the UserContextService
-      const user = {
-        userId: payload.sub,
-        username: payload.username,
-        businessId: payload.businessId,
-      };
-
-      // Save user to the UserContextService
-      this.userContextService.setUser(user);
     } catch {
       throw new UnauthorizedException();
     }

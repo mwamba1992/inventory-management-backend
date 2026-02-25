@@ -1,4 +1,6 @@
-import { ForbiddenException, Injectable, Scope } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Scope } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
+import { Request } from 'express';
 
 export interface UserContext {
   userId: number;
@@ -8,18 +10,23 @@ export interface UserContext {
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserContextService {
-  private user: UserContext;
+  constructor(@Inject(REQUEST) private readonly request: Request) {}
 
-  setUser(user: UserContext) {
-    this.user = user;
-  }
-
-  getUser(): UserContext {
-    return this.user;
+  getUser(): UserContext | undefined {
+    const payload = this.request['user'];
+    if (!payload) {
+      return undefined;
+    }
+    return {
+      userId: payload.sub,
+      username: payload.username,
+      businessId: payload.businessId,
+    };
   }
 
   getBusinessId(): number {
-    const businessId = this.user?.businessId;
+    const payload = this.request['user'];
+    const businessId = payload?.businessId;
     if (!businessId) {
       throw new ForbiddenException(
         'Business context not available. Please log out and log back in.',
