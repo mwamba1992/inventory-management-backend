@@ -18,6 +18,7 @@ import { UpdateCustomerProfileDto } from './dto/update-customer-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { WhatsAppOrderService } from '../whatsapp/services/whatsapp-order.service';
+import { Public } from '../utils/decorators';
 
 @ApiTags('Customer Authentication')
 @Controller('customer-auth')
@@ -27,6 +28,7 @@ export class CustomerAuthController {
     private readonly orderService: WhatsAppOrderService,
   ) {}
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -44,6 +46,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -61,6 +64,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Post('set-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

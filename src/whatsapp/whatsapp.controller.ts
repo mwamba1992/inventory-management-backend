@@ -16,6 +16,7 @@ import { WhatsAppOrderService } from './services/whatsapp-order.service';
 import { WhatsAppMessageDto, WebhookVerificationDto } from './dto/webhook.dto';
 import { OrderStatus } from './entities/whatsapp-order.entity';
 import { CreateEcommerceOrderDto } from './dto/create-ecommerce-order.dto';
+import { Public } from '../utils/decorators';
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
@@ -31,6 +32,7 @@ export class WhatsAppController {
    * Webhook verification endpoint
    * WhatsApp will call this to verify the webhook URL
    */
+  @Public()
   @Get('webhook')
   @ApiOperation({ summary: 'Verify WhatsApp webhook' })
   @ApiResponse({ status: 200, description: 'Webhook verified successfully' })
@@ -65,6 +67,7 @@ export class WhatsAppController {
   /**
    * Webhook endpoint to receive messages from WhatsApp
    */
+  @Public()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Receive WhatsApp messages' })
@@ -126,6 +129,7 @@ export class WhatsAppController {
   /**
    * Create e-commerce order from website
    */
+  @Public()
   @Post('ecommerce-order')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
@@ -274,6 +278,7 @@ export class WhatsAppController {
   /**
    * Generate WhatsApp product link
    */
+  @Public()
   @Get('product-link/:itemId')
   @ApiOperation({ summary: 'Generate WhatsApp click-to-chat link for a product' })
   @ApiParam({ name: 'itemId', description: 'Product/Item ID' })
