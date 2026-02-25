@@ -6,6 +6,7 @@ import {
   OneToMany,
   JoinColumn,
   Index,
+  Unique,
 } from 'typeorm';
 import { BaseEntity } from '../../../utils/base.entity';
 import { Common } from '../../../settings/common/entities/common.entity';
@@ -24,6 +25,7 @@ export enum ItemCondition {
 }
 
 @Entity()
+@Unique(['code', 'businessId'])
 export class Item extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -31,7 +33,7 @@ export class Item extends BaseEntity {
   @Column()
   name: string;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ nullable: true })
   code: string;
 
   @Column({ nullable: true })
