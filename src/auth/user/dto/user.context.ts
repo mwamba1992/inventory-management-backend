@@ -1,4 +1,4 @@
-import { Injectable, Scope } from '@nestjs/common';
+import { ForbiddenException, Injectable, Scope } from '@nestjs/common';
 
 export interface UserContext {
   userId: number;
@@ -19,6 +19,12 @@ export class UserContextService {
   }
 
   getBusinessId(): number {
-    return this.user?.businessId;
+    const businessId = this.user?.businessId;
+    if (!businessId) {
+      throw new ForbiddenException(
+        'Business context not available. Please log out and log back in.',
+      );
+    }
+    return businessId;
   }
 }
