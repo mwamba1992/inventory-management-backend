@@ -35,8 +35,8 @@ export class CustomerAuthController {
   })
   @ApiResponse({ status: 201, description: 'Customer registered successfully' })
   @ApiResponse({ status: 409, description: 'Customer already exists' })
-  async register(@Body() dto: CustomerRegisterDto) {
-    const result = await this.customerAuthService.register(dto);
+  async register(@Body() dto: CustomerRegisterDto & { businessId?: number }) {
+    const result = await this.customerAuthService.register(dto, dto.businessId);
     return {
       success: true,
       message: 'Account created successfully!',
@@ -52,8 +52,8 @@ export class CustomerAuthController {
   })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() dto: CustomerLoginDto) {
-    const result = await this.customerAuthService.login(dto);
+  async login(@Body() dto: CustomerLoginDto & { businessId?: number }) {
+    const result = await this.customerAuthService.login(dto, dto.businessId);
     return {
       success: true,
       message: 'Login successful!',
@@ -70,8 +70,8 @@ export class CustomerAuthController {
   @ApiResponse({ status: 200, description: 'Password set successfully' })
   @ApiResponse({ status: 404, description: 'Customer not found' })
   @ApiResponse({ status: 400, description: 'Password already set' })
-  async setPassword(@Body() dto: SetPasswordDto) {
-    const result = await this.customerAuthService.setPassword(dto);
+  async setPassword(@Body() dto: SetPasswordDto & { businessId?: number }) {
+    const result = await this.customerAuthService.setPassword(dto, dto.businessId);
     return {
       success: true,
       ...result,

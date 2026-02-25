@@ -144,9 +144,9 @@ export class WhatsAppController {
     status: 404,
     description: 'Item or warehouse not found'
   })
-  async createEcommerceOrder(@Body() dto: CreateEcommerceOrderDto) {
+  async createEcommerceOrder(@Body() dto: CreateEcommerceOrderDto & { businessId?: number }) {
     this.logger.log(`Received e-commerce order from ${dto.customerName}`);
-    const order = await this.orderService.createEcommerceOrder(dto);
+    const order = await this.orderService.createEcommerceOrder(dto, dto.businessId);
 
     // Get customer's order history (including the new order)
     const customerOrders = await this.orderService.findByPhone(dto.customerPhone);
