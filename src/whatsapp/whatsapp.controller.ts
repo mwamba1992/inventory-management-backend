@@ -112,6 +112,11 @@ export class WhatsAppController {
                 this.logger.debug(
                   `Message ${status.id} status: ${status.status} for ${status.recipient_id}`,
                 );
+                if (status.status === 'failed' || status.errors) {
+                  this.logger.error(
+                    `WhatsApp delivery FAILED for ${status.recipient_id}: ${JSON.stringify(status.errors || status)}`,
+                  );
+                }
               }
             }
           }
