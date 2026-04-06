@@ -109,12 +109,13 @@ export class WhatsAppController {
             // Log status updates
             if (value.statuses && value.statuses.length > 0) {
               for (const status of value.statuses) {
+                const s = status as any;
                 this.logger.debug(
-                  `Message ${status.id} status: ${status.status} for ${status.recipient_id}`,
+                  `Message ${s.id} status: ${s.status} for ${s.recipient_id}`,
                 );
-                if (status.status === 'failed' || status.errors) {
+                if (s.status === 'failed' || s.errors) {
                   this.logger.error(
-                    `WhatsApp delivery FAILED for ${status.recipient_id}: ${JSON.stringify(status.errors || status)}`,
+                    `WhatsApp delivery FAILED for ${s.recipient_id}: ${JSON.stringify(s.errors || s)}`,
                   );
                 }
               }
