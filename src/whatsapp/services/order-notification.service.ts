@@ -146,7 +146,7 @@ export class OrderNotificationService {
         customerName: whatsappOrder.customer.name,
         orderNumber: whatsappOrder.orderNumber,
         items: itemsList,
-        total: whatsappOrder.totalAmount.toFixed(2),
+        total: Number(whatsappOrder.totalAmount).toFixed(2),
         deliveryAddress: whatsappOrder.deliveryAddress || 'N/A',
       };
     } else {
@@ -161,7 +161,7 @@ export class OrderNotificationService {
         customerName: sale.customer.name,
         orderNumber: `SALE-${sale.id}`,
         items: itemsList,
-        total: sale.amountPaid.toFixed(2),
+        total: Number(sale.amountPaid).toFixed(2),
         deliveryAddress: 'To be confirmed', // Sales don't have delivery address field
       };
     }

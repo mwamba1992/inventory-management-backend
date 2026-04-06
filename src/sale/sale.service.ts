@@ -79,11 +79,31 @@ export class SaleService {
       quantity: quantity,
       amountPaid: dto.amountPaid,
       remarks: dto.remarks,
+      status: SaleStatus.DELIVERED,
+      deliveredAt: new Date(),
       businessId: this.userContextService.getBusinessId(),
       createdAt: new Date(), // createdAt
       updatedAt: new Date(), // updatedAt
     });
-    return this.saleRepo.save(sale);
+    const savedSale = await this.saleRepo.save(sale);
+
+    // Auto-send "order delivered" WhatsApp notification on creation
+    try {
+      const sent = await this.orderNotificationService.sendStatusNotification(
+        savedSale,
+        SaleStatus.DELIVERED,
+      );
+      if (sent) {
+        savedSale.whatsappNotified = true;
+        await this.saleRepo.save(savedSale);
+      }
+    } catch (err) {
+      this.logger.error(
+        `Failed to send delivered notification for new sale ${savedSale.id}: ${err.message}`,
+      );
+    }
+
+    return savedSale;
   }
 
   findAll() {
