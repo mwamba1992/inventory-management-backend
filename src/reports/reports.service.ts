@@ -17,6 +17,7 @@ import {
   InventoryReport,
   CustomerReport,
   FinancialReport,
+  RetentionReport,
 } from './interfaces/report.interface';
 import { DateRange, ReportFilterDto } from './dto/report-filter.dto';
 import { UserContextService } from '../auth/user/dto/user.context';
@@ -806,6 +807,146 @@ export class ReportsService {
       returnRate,
       customerLifetimeValue: Math.round(customerLifetimeValue),
       topCustomers,
+    };
+  }
+
+  /**
+   * Get customer retention report (lifetime metrics)
+   */
+  async getRetentionReport(): Promise<RetentionReport> {
+    const businessId = this.userContextService.getBusinessId();
+
+    const params: any[] = [];
+    let saleBiz = '';
+    let woBiz = '';
+    if (businessId) {
+      params.push(businessId);
+      saleBiz = `AND business_id = $1`;
+      woBiz = `AND business_id = $1`;
+    }
+
+    const sql = `
+      WITH unified AS (
+        SELECT customer_id, "amountPaid"::numeric AS amount, "createdAt" AS at
+        FROM core.sale
+        WHERE customer_id IS NOT NULL ${saleBiz}
+        UNION ALL
+        SELECT customer_id, "totalAmount"::numeric AS amount, created_at AS at
+        FROM core.whatsapp_orders
+        WHERE customer_id IS NOT NULL AND status::text != 'cancelled' ${woBiz}
+      ),
+      agg AS (
+        SELECT customer_id,
+               COUNT(*)::int AS orders,
+               COALESCE(SUM(amount), 0)::numeric AS spent,
+               MIN(at) AS first_order,
+               MAX(at) AS last_order
+        FROM unified
+        GROUP BY customer_id
+      )
+      SELECT a.customer_id AS id,
+             COALESCE(c.name, 'Unknown') AS name,
+             COALESCE(c.phone, '') AS phone,
+             a.orders,
+             a.spent,
+             a.first_order,
+             a.last_order,
+             EXTRACT(DAY FROM (now() - a.last_order))::int AS days_since_last
+      FROM agg a
+      LEFT JOIN core.customer c ON c.id = a.customer_id
+      WHERE c.name IS NULL OR c.name NOT ILIKE 'WALK%'
+      ORDER BY a.spent DESC
+    `;
+
+    const rows: Array<{
+      id: number;
+      name: string;
+      phone: string;
+      orders: number;
+      spent: string;
+      first_order: Date;
+      last_order: Date;
+      days_since_last: number;
+    }> = await this.saleRepository.manager.query(sql, params);
+
+    const total = rows.length;
+    let oneTime = 0;
+    let occasional = 0;
+    let loyal = 0;
+    let active = 0;
+    let atRisk = 0;
+    let dormant = 0;
+    let lost = 0;
+    let totalRevenue = 0;
+    let totalOrders = 0;
+
+    const customers = rows.map((r) => {
+      const orders = Number(r.orders);
+      const spent = Number(r.spent);
+      const days = Number(r.days_since_last) || 0;
+      totalRevenue += spent;
+      totalOrders += orders;
+
+      let segment: 'one_time' | 'occasional' | 'loyal';
+      if (orders === 1) {
+        segment = 'one_time';
+        oneTime++;
+      } else if (orders <= 4) {
+        segment = 'occasional';
+        occasional++;
+      } else {
+        segment = 'loyal';
+        loyal++;
+      }
+
+      let bucket: 'active' | 'at_risk' | 'dormant' | 'lost';
+      if (days <= 30) {
+        bucket = 'active';
+        active++;
+      } else if (days <= 60) {
+        bucket = 'at_risk';
+        atRisk++;
+      } else if (days <= 90) {
+        bucket = 'dormant';
+        dormant++;
+      } else {
+        bucket = 'lost';
+        lost++;
+      }
+
+      return {
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        totalOrders: orders,
+        totalSpent: spent,
+        firstOrder: r.first_order ? new Date(r.first_order).toISOString() : '',
+        lastOrder: r.last_order ? new Date(r.last_order).toISOString() : '',
+        daysSinceLastOrder: days,
+        bucket,
+        segment,
+      };
+    });
+
+    const repeatCustomers = total - oneTime;
+    const repeatPurchaseRate =
+      total > 0 ? Math.round((repeatCustomers / total) * 1000) / 10 : 0;
+    const averageOrdersPerCustomer =
+      total > 0 ? Math.round((totalOrders / total) * 100) / 100 : 0;
+    const averageLifetimeValue =
+      total > 0 ? Math.round(totalRevenue / total) : 0;
+
+    return {
+      totalCustomersWithOrders: total,
+      oneTimeCustomers: oneTime,
+      repeatCustomers,
+      repeatPurchaseRate,
+      averageOrdersPerCustomer,
+      averageLifetimeValue,
+      totalLifetimeRevenue: Math.round(totalRevenue),
+      segments: { oneTime, occasional, loyal },
+      churnBuckets: { active, atRisk, dormant, lost },
+      customers,
     };
   }
 

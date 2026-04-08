@@ -318,6 +318,28 @@ export class ItemService {
     await this.itemStockRepository.delete(id);
   }
 
+  /**
+   * Receive in-transit stock: move `quantity` units from inTransit → quantity (on-hand).
+   */
+  async receiveItemStock(id: number, quantity: number): Promise<ItemStock> {
+    if (!quantity || quantity <= 0) {
+      throw new Error('Quantity must be greater than zero');
+    }
+    const itemStock = await this.itemStockRepository.findOne({
+      where: { id, item: { businessId: this.userContextService.getBusinessId() } },
+      relations: ['item'],
+    });
+    if (!itemStock) throw new Error('ItemStock not found');
+    if ((itemStock.inTransit || 0) < quantity) {
+      throw new Error(
+        `Cannot receive ${quantity} units; only ${itemStock.inTransit || 0} in transit`,
+      );
+    }
+    itemStock.inTransit = (itemStock.inTransit || 0) - quantity;
+    itemStock.quantity = (itemStock.quantity || 0) + quantity;
+    return this.itemStockRepository.save(itemStock);
+  }
+
   async createItemStockDistribution(
     createDto: CreateItemStockDistributionDto,
   ): Promise<ItemStockDistribution> {

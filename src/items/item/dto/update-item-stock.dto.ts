@@ -3,4 +3,5 @@ export class UpdateItemStockDto {
   itemId?: number;
   warehouseId?: number;
   quantity?: number;
+  inTransit?: number;
 }

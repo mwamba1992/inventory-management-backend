@@ -108,6 +108,18 @@ export class ItemController {
     return this.itemService.removeItemStock(id);
   }
 
+  /**
+   * Mark in-transit stock as received: moves N units from inTransit → on-hand quantity.
+   * POST /items/item-stocks/:id/receive  body: { quantity: number }
+   */
+  @Post('item-stocks/:id/receive')
+  async receiveItemStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('quantity') quantity: number,
+  ): Promise<ItemStock> {
+    return this.itemService.receiveItemStock(id, quantity);
+  }
+
   // ========== ITEM STOCK DISTRIBUTION CRUD (Color Management) ==========
   @Post('item-stock-distributions')
   @ApiOperation({

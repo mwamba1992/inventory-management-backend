@@ -82,6 +82,39 @@ export interface CustomerReport {
   }>;
 }
 
+export interface RetentionReport {
+  totalCustomersWithOrders: number;
+  oneTimeCustomers: number;
+  repeatCustomers: number;
+  repeatPurchaseRate: number; // percentage
+  averageOrdersPerCustomer: number;
+  averageLifetimeValue: number;
+  totalLifetimeRevenue: number;
+  segments: {
+    oneTime: number; // 1 order
+    occasional: number; // 2-4
+    loyal: number; // 5+
+  };
+  churnBuckets: {
+    active: number; // ≤30 days
+    atRisk: number; // 31-60
+    dormant: number; // 61-90
+    lost: number; // >90
+  };
+  customers: Array<{
+    id: number;
+    name: string;
+    phone: string;
+    totalOrders: number;
+    totalSpent: number;
+    firstOrder: string;
+    lastOrder: string;
+    daysSinceLastOrder: number;
+    bucket: 'active' | 'at_risk' | 'dormant' | 'lost';
+    segment: 'one_time' | 'occasional' | 'loyal';
+  }>;
+}
+
 export interface FinancialReport {
   totalRevenue: MetricValue;
   totalExpenses: MetricValue;

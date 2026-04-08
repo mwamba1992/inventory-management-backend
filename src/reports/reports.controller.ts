@@ -10,6 +10,7 @@ import {
   InventoryReport,
   FinancialReport,
   BalanceSheetReport,
+  RetentionReport,
 } from './interfaces/report.interface';
 
 @Controller('reports')
@@ -50,6 +51,15 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
   ): Promise<CustomerReport> {
     return this.reportsService.getCustomerReport(filter);
+  }
+
+  /**
+   * Get customer retention report (lifetime metrics)
+   * GET /reports/retention
+   */
+  @Get('retention')
+  async getRetentionReport(): Promise<RetentionReport> {
+    return this.reportsService.getRetentionReport();
   }
 
   /**

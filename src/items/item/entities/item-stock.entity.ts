@@ -18,6 +18,9 @@ export class ItemStock extends BaseEntity {
   @Column({ default: 0 })
   quantity: number;
 
+  @Column({ default: 0 })
+  inTransit: number;
+
   @Column({ nullable: true })
   reorderPoint: number;
 
