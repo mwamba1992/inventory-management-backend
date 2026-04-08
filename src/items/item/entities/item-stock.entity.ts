@@ -1,10 +1,11 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { BaseEntity } from '../../../utils/base.entity';
 import { Item } from './item.entity';
 import { Warehouse } from '../../../settings/warehouse/entities/warehouse.entity';
 import { ItemStockDistribution } from './item-stock-distribution.entity';
 
 @Entity()
+@Unique('uq_item_stock_item_warehouse', ['item', 'warehouse'])
 export class ItemStock extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

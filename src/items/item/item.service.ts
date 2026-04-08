@@ -263,6 +263,16 @@ export class ItemService {
     });
     if (!warehouse) throw new Error('Warehouse not found');
 
+    const existing = await this.itemStockRepository.findOne({
+      where: { item: { id: item.id }, warehouse: { id: warehouse.id } },
+      relations: ['item', 'warehouse'],
+    });
+    if (existing) {
+      throw new Error(
+        `Stock for item "${item.name}" in warehouse "${warehouse.name}" already exists. Edit the existing entry instead.`,
+      );
+    }
+
     const itemStock = this.itemStockRepository.create({
       ...createItemStockDto,
       item,
