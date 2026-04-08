@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateItemDto } from './dto/create-item.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Item } from './entities/item.entity';
@@ -268,7 +268,7 @@ export class ItemService {
       relations: ['item', 'warehouse'],
     });
     if (existing) {
-      throw new Error(
+      throw new BadRequestException(
         `Stock for item "${item.name}" in warehouse "${warehouse.name}" already exists. Edit the existing entry instead.`,
       );
     }

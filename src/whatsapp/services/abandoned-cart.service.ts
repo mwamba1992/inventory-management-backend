@@ -45,7 +45,7 @@ export class AbandonedCartService {
           ],
         })
         .andWhere(
-          `JSON_EXTRACT(session.context, '$.cart') IS NOT NULL AND JSON_LENGTH(session.context, '$.cart') > 0`,
+          `(session.context::jsonb -> 'cart') IS NOT NULL AND jsonb_array_length(session.context::jsonb -> 'cart') > 0`,
         )
         .andWhere(
           '(session.lastCartReminderAt IS NULL OR session.lastCartReminderAt < :twentyFourHoursAgo)',
