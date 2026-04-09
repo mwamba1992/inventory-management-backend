@@ -114,9 +114,21 @@ export class WhatsAppController {
                   `Message ${s.id} status: ${s.status} for ${s.recipient_id}`,
                 );
                 if (s.status === 'failed' || s.errors) {
-                  this.logger.error(
-                    `WhatsApp delivery FAILED for ${s.recipient_id}: ${JSON.stringify(s.errors || s)}`,
+                  const errors = Array.isArray(s.errors) ? s.errors : [];
+                  const isAccountLocked = errors.some(
+                    (e: any) => e.code === 131031,
                   );
+                  if (isAccountLocked) {
+                    this.logger.warn(
+                      `WhatsApp Cloud API LOCKED — cannot send to ${s.recipient_id}. ` +
+                        `Resolve at business.facebook.com → WhatsApp Accounts → Appeal. ` +
+                        `Manual replies via the phone app still work.`,
+                    );
+                  } else {
+                    this.logger.error(
+                      `WhatsApp delivery FAILED for ${s.recipient_id}: ${JSON.stringify(s.errors || s)}`,
+                    );
+                  }
                 }
               }
             }
