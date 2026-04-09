@@ -115,6 +115,36 @@ export interface RetentionReport {
   }>;
 }
 
+export interface ShelfTimeReport {
+  overallAvgDays: number;
+  medianDays: number;
+  fastestDays: number;
+  slowestDays: number;
+  totalItemsSold: number;
+  byBrand: Array<{
+    brand: string;
+    itemsSold: number;
+    avgDays: number;
+  }>;
+  fastestMovers: Array<{
+    code: string;
+    name: string;
+    daysOnShelf: number;
+  }>;
+  slowestMovers: Array<{
+    code: string;
+    name: string;
+    daysOnShelf: number;
+  }>;
+  currentlyAging: Array<{
+    code: string;
+    name: string;
+    daysSinceArrival: number;
+    onHand: number;
+    status: 'fresh' | 'normal' | 'aging' | 'stale';
+  }>;
+}
+
 export interface FinancialReport {
   totalRevenue: MetricValue;
   totalExpenses: MetricValue;

@@ -18,6 +18,7 @@ import {
   CustomerReport,
   FinancialReport,
   RetentionReport,
+  ShelfTimeReport,
 } from './interfaces/report.interface';
 import { DateRange, ReportFilterDto } from './dto/report-filter.dto';
 import { UserContextService } from '../auth/user/dto/user.context';
@@ -947,6 +948,165 @@ export class ReportsService {
       segments: { oneTime, occasional, loyal },
       churnBuckets: { active, atRisk, dormant, lost },
       customers,
+    };
+  }
+
+  /**
+   * Get shelf-time report — how long products sit before first sale.
+   */
+  async getShelfTimeReport(): Promise<ShelfTimeReport> {
+    const businessId = this.userContextService.getBusinessId();
+    const params: any[] = [];
+    let bizClause = '';
+    if (businessId) {
+      params.push(businessId);
+      bizClause = `AND i.business_id = $1`;
+    }
+
+    // 1. Overall + per-item shelf-time for items that have sold
+    const soldRows: Array<{
+      code: string;
+      name: string;
+      brand: string;
+      days_on_shelf: number;
+    }> = await this.saleRepository.manager.query(
+      `
+      WITH first_sales AS (
+        SELECT s.item_id, MIN(s."createdAt") AS first_sale
+        FROM core.sale s
+        ${businessId ? 'WHERE s.business_id = $1' : ''}
+        GROUP BY s.item_id
+      )
+      SELECT
+        i.code,
+        i.name,
+        CASE
+          WHEN i.name ILIKE '%mi band%' OR i.name ILIKE '%xiaomi%' OR i.name ILIKE '%redmi%' THEN 'XIAOMI/REDMI'
+          WHEN i.name ILIKE '%samsung%' THEN 'SAMSUNG'
+          WHEN i.name ILIKE '%pixel%' OR i.name ILIKE '%google%' THEN 'GOOGLE PIXEL'
+          WHEN i.name ILIKE '%amazfit%' THEN 'AMAZFIT'
+          WHEN i.name ILIKE '%huawei%' THEN 'HUAWEI'
+          WHEN i.name ILIKE '%fitbit%' THEN 'FITBIT'
+          WHEN i.name ILIKE '%nothing%' THEN 'NOTHING'
+          WHEN i.name ILIKE '%apple%' THEN 'APPLE'
+          WHEN i.name ILIKE '%garmin%' THEN 'GARMIN'
+          ELSE 'OTHER'
+        END AS brand,
+        EXTRACT(DAY FROM (fs.first_sale - i.created_at))::int AS days_on_shelf
+      FROM core.item i
+      JOIN first_sales fs ON fs.item_id = i.id
+      WHERE i.deleted = false ${bizClause}
+      ORDER BY days_on_shelf ASC
+      `,
+      params,
+    );
+
+    // 2. Currently aging items (in stock but never sold yet)
+    const agingRows: Array<{
+      code: string;
+      name: string;
+      days_since_arrival: number;
+      on_hand: number;
+    }> = await this.saleRepository.manager.query(
+      `
+      SELECT
+        i.code,
+        i.name,
+        EXTRACT(DAY FROM (now() - i.created_at))::int AS days_since_arrival,
+        COALESCE(SUM(st.quantity), 0)::int AS on_hand
+      FROM core.item i
+      LEFT JOIN core.item_stock st ON st."itemId" = i.id
+      WHERE i.deleted = false
+        ${bizClause}
+        AND i.id NOT IN (SELECT item_id FROM core.sale WHERE item_id IS NOT NULL)
+      GROUP BY i.id, i.code, i.name, i.created_at
+      HAVING COALESCE(SUM(st.quantity), 0) > 0
+      ORDER BY days_since_arrival DESC
+      `,
+      params,
+    );
+
+    if (soldRows.length === 0) {
+      return {
+        overallAvgDays: 0,
+        medianDays: 0,
+        fastestDays: 0,
+        slowestDays: 0,
+        totalItemsSold: 0,
+        byBrand: [],
+        fastestMovers: [],
+        slowestMovers: [],
+        currentlyAging: [],
+      };
+    }
+
+    // Aggregate stats
+    const days = soldRows.map((r) => Number(r.days_on_shelf));
+    const total = days.length;
+    const avg = Math.round(days.reduce((a, b) => a + b, 0) / total);
+    const sorted = [...days].sort((a, b) => a - b);
+    const median = sorted[Math.floor(total / 2)];
+    const fastest = sorted[0];
+    const slowest = sorted[total - 1];
+
+    // By brand
+    const brandMap = new Map<string, { sum: number; count: number }>();
+    soldRows.forEach((r) => {
+      const existing = brandMap.get(r.brand) || { sum: 0, count: 0 };
+      existing.sum += Number(r.days_on_shelf);
+      existing.count += 1;
+      brandMap.set(r.brand, existing);
+    });
+    const byBrand = Array.from(brandMap.entries())
+      .map(([brand, { sum, count }]) => ({
+        brand,
+        itemsSold: count,
+        avgDays: Math.round(sum / count),
+      }))
+      .sort((a, b) => a.avgDays - b.avgDays);
+
+    // Fastest & slowest movers
+    const fastestMovers = soldRows.slice(0, 10).map((r) => ({
+      code: r.code,
+      name: r.name,
+      daysOnShelf: Number(r.days_on_shelf),
+    }));
+    const slowestMovers = [...soldRows]
+      .reverse()
+      .slice(0, 10)
+      .map((r) => ({
+        code: r.code,
+        name: r.name,
+        daysOnShelf: Number(r.days_on_shelf),
+      }));
+
+    // Currently aging — bucket by status against avg
+    const currentlyAging = agingRows.map((r) => {
+      const days = Number(r.days_since_arrival);
+      let status: 'fresh' | 'normal' | 'aging' | 'stale';
+      if (days <= 30) status = 'fresh';
+      else if (days <= avg) status = 'normal';
+      else if (days <= avg * 2) status = 'aging';
+      else status = 'stale';
+      return {
+        code: r.code,
+        name: r.name,
+        daysSinceArrival: days,
+        onHand: Number(r.on_hand),
+        status,
+      };
+    });
+
+    return {
+      overallAvgDays: avg,
+      medianDays: median,
+      fastestDays: fastest,
+      slowestDays: slowest,
+      totalItemsSold: total,
+      byBrand,
+      fastestMovers,
+      slowestMovers,
+      currentlyAging,
     };
   }
 

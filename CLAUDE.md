@@ -178,3 +178,73 @@ Key env vars (in .env):
 - TypeORM synchronize is ON — entity changes auto-apply to DB (not safe for production migrations)
 - No custom middleware or pipes detected; validation uses NestJS built-in ValidationPipe
 - Swagger auto-generated from decorators with persistent authorization
+
+## Business Context (GLOBAL AUTHENTICS TZ — business_id=1)
+
+- Two tenants in DB: GLOBAL AUTHENTICS TZ (active, wearables/audio retail) and PRIME ROOT (id=2, supplements, no sales yet)
+- Walk-in customer placeholder: customer name `WALK IN KARIAKOO` — exclude from retention/customer analytics (already filtered in `/reports/retention`)
+- Top brands by revenue (lifetime): Samsung (10.8M), Amazfit (3.6M), Xiaomi/Redmi (3.5M), Nothing (3.1M), Pixel (2.7M)
+- Buyer profile: classic/rugged Samsung watches sell best (Watch 6 Classic, Ultra). Apple Watch and HAINO TEKO/NAVIFORCE/Firebolt do NOT sell — stop reordering these.
+- USED premium watches command higher avg ticket (360K) than NEW (250K) — refurb-premium is the sweet spot
+- Repeat rate ~9.6% (target 25%); 60% of inventory cost trapped in slow movers (>90 days idle)
+- Naviforce 30 units = in-transit, never received (PROD-080 row id 92 set to qty=0, inTransit=30)
+
+## Open Purchase Order Plan (last reviewed 2026-04-08)
+
+### FINAL 4M ORDER — 15 units, ~3.91M (with real supplier prices)
+
+| Item | Qty | Source | Landed/unit (TZS) | Total |
+|---|---|---|---|---|
+| Google Pixel Watch 2 USED (eBay UK refurb, £79) | 4 | eBay UK | 269K | 1,076K |
+| Mi Band 10 (Amazon UAE, 132 AED) | 4 | Amazon UAE | ~121K | ~484K |
+| Samsung Watch 6 Classic (eBay US, $99.99 + $24/2 ship) | 2 | eBay US | ~283K | ~567K |
+| Samsung Watch 8 Classic 46mm NEW SKU (Amazon UAE, 902 AED + 25 AED ship) | 1 | Amazon UAE | ~640K | ~640K |
+| Amazfit Active Max (Amazon UAE, 608 AED) | 1 | Amazon UAE | ~428K | ~428K |
+| Huawei Fit 4 Pro (Amazon UAE, 536 AED) | 1 | Amazon UAE | ~378K | ~378K |
+| Samsung Watch 4 Classic 42mm Refurbished (eBay US, $54 + $12) | 2 | eBay US | ~167K | ~334K |
+| **TOTAL** | **15** | | | **~3,907K** |
+| **Reserve** | | | | ~93K |
+
+### Sourcing rules learned this session
+- **Amazon UAE wins** for: Mi Band, Amazfit, Huawei, new Samsung NEW (cheaper than Alibaba at small MOQs)
+- **eBay UK wins** for: Pixel refurbished, Samsung Classic refurbished (best refurb supply)
+- **eBay US wins** for: Samsung refurbished if shipping is bundled cheaply
+- **Always require**: Top Rated Seller, 99%+ feedback, "Refurbished — Excellent" condition, returns accepted
+- **Never buy**: "spares or repairs", unknown sellers, anything claiming Apple at 30% retail
+- For all eBay refurbished: confirm activation lock removed before paying
+
+### Margin reality (from this session)
+- Jiji.co.tz is NOT the real TZ market — most actual selling happens on Instagram DMs
+- Don't price-audit using Jiji alone, prices there are ~30-50% above real Instagram market
+- User's existing prices are reasonable; ~58% ROI projected on this 4M order at current sell prices (not 114% I initially claimed using Jiji data)
+
+### Do NOT reorder
+Apple Watch line, HAINO TEKO line, NAVIFORCE (PROD-080 currently 0 on-hand / 30 in-transit, never received), Firebolt, Hummer Pulse, Noise Vortex, Fast Track. Supplements are PRIME ROOT (business_id=2), not Global Authentics.
+
+### Brand preferences confirmed
+- Buyer wants **Classic and Rugged** Samsung (not FE, not regular Watch 6)
+- Pixel **USED** sells, Pixel **NEW** does not (Pixel Watch 3 USED PROD-064 already sitting unsold ⚠️)
+- Both 42mm and 46mm Watch 4 Classic sell
+- Highest historical seller: Samsung Watch 6 Classic line (8 sales, 3.6M)
+- 75% gross markup typical, USED items = higher avg ticket (360K) than NEW (250K)
+
+### Top 3 ad picks (point all to click-to-WhatsApp, launch AFTER stock arrives)
+1. Google Pixel Watch 2 USED — acquisition, premium hook
+2. Mi Band 10 — volume + low-friction first purchase
+3. Samsung Watch 8 Classic 46mm — first-mover test on newest model
+
+### Ad budget guidance
+- Daily: $9/day across 3 ads ($3/ad/day minimum for Meta optimization)
+- Monthly: ~$270 / ~675K TZS (same as historical spend, smarter use)
+- Phase 1: 14 days validate. Phase 2: scale winners to $10-15/day. Kill ads <5 conversations after 7 days.
+- Mix: 2 click-to-WhatsApp (sales) + 1 brand engagement (followers/profile visits)
+- Run all in Swahili — past Swahili boosts performed better than English ones
+
+### 90-day scoreboard
+| Metric | Today | 90-day target |
+|---|---|---|
+| Repeat rate | 9.6% | 20% |
+| Monthly revenue | ~3M | 5M+ |
+| WhatsApp orders | 0 | 10+/month |
+| Slow-mover cash trapped | 13.4M | <8M |
+| Ad ROAS | unknown | ≥4x |

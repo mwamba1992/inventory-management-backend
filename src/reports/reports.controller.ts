@@ -11,6 +11,7 @@ import {
   FinancialReport,
   BalanceSheetReport,
   RetentionReport,
+  ShelfTimeReport,
 } from './interfaces/report.interface';
 
 @Controller('reports')
@@ -60,6 +61,16 @@ export class ReportsController {
   @Get('retention')
   async getRetentionReport(): Promise<RetentionReport> {
     return this.reportsService.getRetentionReport();
+  }
+
+  /**
+   * Get shelf-time report — how long items sit before first sale,
+   * plus a watch-list of currently aging items.
+   * GET /reports/shelf-time
+   */
+  @Get('shelf-time')
+  async getShelfTimeReport(): Promise<ShelfTimeReport> {
+    return this.reportsService.getShelfTimeReport();
   }
 
   /**
