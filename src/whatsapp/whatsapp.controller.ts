@@ -94,9 +94,14 @@ export class WhatsAppController {
                 const phoneNumber = message.from;
                 const contactName = value.contacts?.[0]?.profile?.name;
 
+                // Resolve businessId from the webhook entry metadata.
+                // Meta's entry.id is the WABA ID — for now we default to
+                // business 1 (GLOBAL AUTHENTICS) since webhooks have no JWT context.
+                const webhookBusinessId = 1;
+
                 // Handle message asynchronously
                 this.messageHandler
-                  .handleIncomingMessage(phoneNumber, message, contactName)
+                  .handleIncomingMessage(phoneNumber, message, contactName, webhookBusinessId)
                   .catch((error) => {
                     this.logger.error(
                       `Error handling message from ${phoneNumber}: ${error.message}`,
