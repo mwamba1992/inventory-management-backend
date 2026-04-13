@@ -32,6 +32,7 @@ export interface AdDailyDataPoint {
 export interface CampaignSummary {
   campaignId: string;
   campaignName: string;
+  adCreativeBody: string | null;
   spend: number;
   impressions: number;
   clicks: number;

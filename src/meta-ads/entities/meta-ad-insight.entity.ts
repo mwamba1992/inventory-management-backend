@@ -73,6 +73,9 @@ export class MetaAdInsight {
   @Column('decimal', { precision: 10, scale: 4, default: 0 })
   ctr: number;
 
+  @Column({ type: 'text', nullable: true, name: 'ad_creative_body' })
+  adCreativeBody: string;
+
   @Column({ type: 'jsonb', nullable: true })
   actions: any;
 

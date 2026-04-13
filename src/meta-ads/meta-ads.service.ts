@@ -131,8 +131,63 @@ export class MetaAdsService {
       }
     }
 
+    // Fetch full creative body text for ads that don't have it yet
+    await this.fetchCreativeBodies(businessId);
+
     this.logger.log(`Stored ${totalRows} insight rows for ${startDate} to ${endDate}`);
     return totalRows;
+  }
+
+  /**
+   * Fetch full ad creative body text from Meta API for ads missing it
+   */
+  private async fetchCreativeBodies(businessId: number): Promise<void> {
+    try {
+      // Find unique ad IDs without creative body
+      const adsWithoutBody = await this.insightRepo
+        .createQueryBuilder('i')
+        .select('DISTINCT i.ad_id', 'adId')
+        .where('i.business_id = :businessId', { businessId })
+        .andWhere('(i.ad_creative_body IS NULL OR i.ad_creative_body = \'\')')
+        .andWhere('i.ad_id IS NOT NULL')
+        .getRawMany();
+
+      if (adsWithoutBody.length === 0) return;
+
+      for (const row of adsWithoutBody) {
+        try {
+          const response = await firstValueFrom(
+            this.httpService.get(
+              `${this.apiBaseUrl}/${row.adId}/adcreatives`,
+              {
+                params: {
+                  fields: 'body',
+                  access_token: this.accessToken,
+                },
+              },
+            ),
+          );
+
+          const body = response.data?.data?.[0]?.body;
+          if (body) {
+            await this.insightRepo
+              .createQueryBuilder()
+              .update(MetaAdInsight)
+              .set({ adCreativeBody: body })
+              .where('ad_id = :adId AND business_id = :businessId', {
+                adId: row.adId,
+                businessId,
+              })
+              .execute();
+          }
+        } catch (e) {
+          // Skip individual ad errors (ad may be deleted)
+          this.logger.warn(`Could not fetch creative for ad ${row.adId}: ${e.message}`);
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Creative body fetch failed: ${error.message}`);
+    }
   }
 
   /**
@@ -406,6 +461,7 @@ export class MetaAdsService {
       .createQueryBuilder('i')
       .select('i.campaign_id', 'campaignId')
       .addSelect('i.campaign_name', 'campaignName')
+      .addSelect('MAX(i.ad_creative_body)', 'adCreativeBody')
       .addSelect('COALESCE(SUM(i.spend), 0)', 'spend')
       .addSelect('COALESCE(SUM(i.impressions), 0)', 'impressions')
       .addSelect('COALESCE(SUM(i.clicks), 0)', 'clicks')
@@ -427,6 +483,7 @@ export class MetaAdsService {
       return {
         campaignId: row.campaignId,
         campaignName: row.campaignName,
+        adCreativeBody: row.adCreativeBody || null,
         spend,
         impressions,
         clicks,
