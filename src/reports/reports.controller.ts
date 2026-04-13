@@ -2,6 +2,7 @@ import { Controller, Get, Query, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { CatalogueService } from './catalogue/catalogue.service';
+import { MetaAdsService } from '../meta-ads/meta-ads.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
 import { CatalogueFilterDto } from './dto/catalogue-filter.dto';
 import {
@@ -13,12 +14,14 @@ import {
   RetentionReport,
   ShelfTimeReport,
 } from './interfaces/report.interface';
+import { AdPerformanceReport } from '../meta-ads/interfaces/ad-performance.interface';
 
 @Controller('reports')
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly catalogueService: CatalogueService,
+    private readonly metaAdsService: MetaAdsService,
   ) {}
 
   /**
@@ -82,6 +85,17 @@ export class ReportsController {
     @Query() filter: ReportFilterDto,
   ): Promise<FinancialReport> {
     return this.reportsService.getFinancialReport(filter);
+  }
+
+  /**
+   * Get ad performance report with ROAS
+   * GET /reports/ad-performance?dateRange=last_30_days
+   */
+  @Get('ad-performance')
+  async getAdPerformance(
+    @Query() filter: ReportFilterDto,
+  ): Promise<AdPerformanceReport> {
+    return this.metaAdsService.getAdPerformance(filter);
   }
 
   /**

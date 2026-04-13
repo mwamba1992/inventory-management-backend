@@ -43,6 +43,8 @@ import { WhatsAppOrderItem } from './whatsapp/entities/whatsapp-order-item.entit
 import { WhatsAppSession } from './whatsapp/entities/whatsapp-session.entity';
 import { ReportsModule } from './reports/reports.module';
 import { CustomerAuthModule } from './customer-auth/customer-auth.module';
+import { MetaAdsModule } from './meta-ads/meta-ads.module';
+import { MetaAdInsight } from './meta-ads/entities/meta-ad-insight.entity';
 
 @Module({
   imports: [
@@ -82,6 +84,7 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
         WhatsAppOrder,
         WhatsAppOrderItem,
         WhatsAppSession,
+        MetaAdInsight,
       ],
       database: process.env.DB_DATABASE || 'inventorydb',
       schema: process.env.DB_SCHEMA || 'core',
@@ -105,6 +108,7 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
     ExpenseModule,
     WhatsAppModule,
     ReportsModule,
+    MetaAdsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

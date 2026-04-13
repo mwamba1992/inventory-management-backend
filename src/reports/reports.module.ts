@@ -13,6 +13,7 @@ import { ItemPrice } from '../items/item/entities/item-price.entity';
 import { Expense } from '../expense/entities/expense.entity';
 import { AuthModule } from '../auth/auth.module';
 import { SharedModule } from '../shared/shared.module';
+import { MetaAdsModule } from '../meta-ads/meta-ads.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SharedModule } from '../shared/shared.module';
     ]),
     AuthModule,
     SharedModule,
+    MetaAdsModule,
   ],
   controllers: [ReportsController],
   providers: [ReportsService, CatalogueService],
