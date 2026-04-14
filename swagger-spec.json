@@ -641,6 +641,29 @@
         ]
       }
     },
+    "/items/item-stocks/{id}/receive": {
+      "post": {
+        "operationId": "ItemController_receiveItemStock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Items"
+        ]
+      }
+    },
     "/items/item-stock-distributions": {
       "post": {
         "description": "Create a color distribution for an item stock. Use this to track how many units of each color are in a specific warehouse stock.",
@@ -2525,16 +2548,6 @@
         "description": "Create a new customer account with phone and password. Returns JWT token for authentication.",
         "operationId": "CustomerAuthController_register",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CustomerRegisterDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "Customer registered successfully"
@@ -2554,16 +2567,6 @@
         "description": "Login with phone number and password. Returns JWT token.",
         "operationId": "CustomerAuthController_login",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CustomerLoginDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Login successful"
@@ -2583,16 +2586,6 @@
         "description": "For customers who placed orders via checkout but never set a password. They can use this to set their password and start logging in.",
         "operationId": "CustomerAuthController_setPassword",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetPasswordDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Password set successfully"
@@ -2796,16 +2789,6 @@
         "description": "Create an order from the e-commerce website. This endpoint accepts customer information, order items, and payment details. The order will be created with PENDING status and inventory will NOT be deducted until admin confirms the order.",
         "operationId": "WhatsAppController_createEcommerceOrder",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateEcommerceOrderDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "Order created successfully. Returns the created order with order number (e.g., EC2501130001)"
@@ -3479,9 +3462,51 @@
         ]
       }
     },
+    "/reports/retention": {
+      "get": {
+        "operationId": "ReportsController_getRetentionReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/shelf-time": {
+      "get": {
+        "operationId": "ReportsController_getShelfTimeReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
     "/reports/financial": {
       "get": {
         "operationId": "ReportsController_getFinancialReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/ad-performance": {
+      "get": {
+        "operationId": "ReportsController_getAdPerformance",
         "parameters": [],
         "responses": {
           "200": {
@@ -3527,6 +3552,74 @@
         },
         "tags": [
           "Reports"
+        ]
+      }
+    },
+    "/meta-ads/insights": {
+      "get": {
+        "operationId": "MetaAdsController_getAdPerformance",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get ad performance report with ROAS",
+        "tags": [
+          "Meta Ads"
+        ]
+      }
+    },
+    "/meta-ads/recommendations": {
+      "get": {
+        "operationId": "MetaAdsController_getRecommendations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get data-driven ad recommendations",
+        "tags": [
+          "Meta Ads"
+        ]
+      }
+    },
+    "/meta-ads/sync": {
+      "get": {
+        "operationId": "MetaAdsController_syncYesterday",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Sync yesterday ad data from Meta",
+        "tags": [
+          "Meta Ads"
+        ]
+      },
+      "post": {
+        "operationId": "MetaAdsController_syncDateRange",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncMetaAdsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Force sync specific date range from Meta",
+        "tags": [
+          "Meta Ads"
         ]
       }
     }
@@ -3801,84 +3894,6 @@
           }
         }
       },
-      "CustomerRegisterDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Customer full name",
-            "example": "John Doe"
-          },
-          "phone": {
-            "type": "string",
-            "description": "Customer phone number (unique)",
-            "example": "+255712345678"
-          },
-          "password": {
-            "type": "string",
-            "description": "Customer password (min 6 characters)",
-            "example": "password123"
-          },
-          "email": {
-            "type": "string",
-            "description": "Customer email (optional)",
-            "example": "john@example.com"
-          },
-          "city": {
-            "type": "string",
-            "description": "Customer city (optional)",
-            "example": "Dar es Salaam"
-          },
-          "region": {
-            "type": "string",
-            "description": "Customer region (optional)",
-            "example": "Kinondoni"
-          }
-        },
-        "required": [
-          "name",
-          "phone",
-          "password"
-        ]
-      },
-      "CustomerLoginDto": {
-        "type": "object",
-        "properties": {
-          "phone": {
-            "type": "string",
-            "description": "Customer phone number",
-            "example": "+255712345678"
-          },
-          "password": {
-            "type": "string",
-            "description": "Customer password",
-            "example": "password123"
-          }
-        },
-        "required": [
-          "phone",
-          "password"
-        ]
-      },
-      "SetPasswordDto": {
-        "type": "object",
-        "properties": {
-          "phone": {
-            "type": "string",
-            "description": "Customer phone number",
-            "example": "+255712345678"
-          },
-          "password": {
-            "type": "string",
-            "description": "New password (min 6 characters)",
-            "example": "password123"
-          }
-        },
-        "required": [
-          "phone",
-          "password"
-        ]
-      },
       "UpdateCustomerProfileDto": {
         "type": "object",
         "properties": {
@@ -3926,101 +3941,6 @@
       "WhatsAppMessageDto": {
         "type": "object",
         "properties": {}
-      },
-      "EcommerceOrderItemDto": {
-        "type": "object",
-        "properties": {
-          "itemId": {
-            "type": "number",
-            "description": "Item ID",
-            "example": 1
-          },
-          "quantity": {
-            "type": "number",
-            "description": "Quantity",
-            "example": 2
-          },
-          "unitPrice": {
-            "type": "number",
-            "description": "Unit price at time of order",
-            "example": 350400
-          }
-        },
-        "required": [
-          "itemId",
-          "quantity",
-          "unitPrice"
-        ]
-      },
-      "CreateEcommerceOrderDto": {
-        "type": "object",
-        "properties": {
-          "customerName": {
-            "type": "string",
-            "description": "Customer full name",
-            "example": "John Doe"
-          },
-          "customerPhone": {
-            "type": "string",
-            "description": "Customer phone number",
-            "example": "255712345678"
-          },
-          "customerEmail": {
-            "type": "string",
-            "description": "Customer email (optional)",
-            "example": "john@example.com"
-          },
-          "customerCity": {
-            "type": "string",
-            "description": "Customer city",
-            "example": "Dar es Salaam"
-          },
-          "customerRegion": {
-            "type": "string",
-            "description": "Customer region",
-            "example": "Kinondoni"
-          },
-          "warehouseId": {
-            "type": "number",
-            "description": "Warehouse ID",
-            "example": 1
-          },
-          "items": {
-            "description": "Order items",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EcommerceOrderItemDto"
-            }
-          },
-          "deliveryAddress": {
-            "type": "string",
-            "description": "Delivery address",
-            "example": "House 123, Street ABC, Kinondoni"
-          },
-          "notes": {
-            "type": "string",
-            "description": "Order notes (optional)",
-            "example": "Please call before delivery"
-          },
-          "paymentMethod": {
-            "type": "string",
-            "description": "Payment method (defaults to Cash on Delivery)",
-            "enum": [
-              "cash_on_delivery",
-              "mobile_money",
-              "bank_transfer",
-              "card"
-            ],
-            "example": "cash_on_delivery"
-          }
-        },
-        "required": [
-          "customerName",
-          "customerPhone",
-          "warehouseId",
-          "items",
-          "deliveryAddress"
-        ]
       },
       "CreateSaleDto": {
         "type": "object",
@@ -4079,6 +3999,19 @@
       "CreateExpenseDto": {
         "type": "object",
         "properties": {}
+      },
+      "SyncMetaAdsDto": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "description": "Start date (YYYY-MM-DD)"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "End date (YYYY-MM-DD)"
+          }
+        }
       }
     }
   }
