@@ -79,8 +79,7 @@ export class SaleService {
       quantity: quantity,
       amountPaid: dto.amountPaid,
       remarks: dto.remarks,
-      status: SaleStatus.DELIVERED,
-      deliveredAt: new Date(),
+      status: SaleStatus.PENDING,
       businessId: this.userContextService.getBusinessId(),
       createdAt: new Date(), // createdAt
       updatedAt: new Date(), // updatedAt

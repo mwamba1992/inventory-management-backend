@@ -2,12 +2,40 @@ import { Injectable, Logger } from '@nestjs/common';
 import { WhatsAppApiService } from './whatsapp-api.service';
 import { WhatsAppOrder } from '../entities/whatsapp-order.entity';
 import { Sale } from '../../sale/entities/sale.entity';
+import { BeemSmsService } from '../../beem-sms/beem-sms.service';
 
 @Injectable()
 export class OrderNotificationService {
   private readonly logger = new Logger(OrderNotificationService.name);
 
-  constructor(private readonly whatsappApi: WhatsAppApiService) {}
+  constructor(
+    private readonly whatsappApi: WhatsAppApiService,
+    private readonly beemSms: BeemSmsService,
+  ) {}
+
+  private buildSmsMessage(status: string, data: {
+    customerName: string;
+    orderNumber: string;
+    items: string;
+    total: string;
+    deliveryAddress: string;
+  }): string {
+    const name = data.customerName.split(' ')[0] || 'Mteja';
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+      case 'pending':
+        return `Habari ${name}, tumepokea oda yako ${data.orderNumber}. Jumla: TZS ${data.total}. Asante kwa kununua Global Authentics!`;
+      case 'processing':
+      case 'ready':
+        return `Habari ${name}, oda yako ${data.orderNumber} inasafirishwa. Jumla: TZS ${data.total}. Karibu Global Authentics!`;
+      case 'delivered':
+        return `Habari ${name}, oda yako ${data.orderNumber} imefikishwa. Jumla: TZS ${data.total}. Asante, karibu tena Global Authentics!`;
+      case 'cancelled':
+        return `Habari ${name}, oda yako ${data.orderNumber} imesitishwa. Tafadhali wasiliana nasi kwa maelezo zaidi.`;
+      default:
+        return `Habari ${name}, hali ya oda yako ${data.orderNumber} imebadilika kuwa: ${status}.`;
+    }
+  }
 
   /**
    * Send order confirmation template (account_update)
@@ -168,30 +196,29 @@ export class OrderNotificationService {
   }
 
   /**
-   * Send notification based on order status
-   * Automatically determines which template to send
+   * Send notification based on order status — SMS sent on delivered only
    */
   async sendStatusNotification(
     order: WhatsAppOrder | Sale,
     status: string,
   ): Promise<boolean> {
-    this.logger.log(`Sending status notification for status: ${status}`);
-
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'pending':
-        return await this.sendOrderConfirmation(order);
-
-      case 'processing':
-      case 'ready':
-        return await this.sendOrderReady(order);
-
-      case 'delivered':
-        return await this.sendOrderDelivered(order);
-
-      default:
-        this.logger.warn(`No template configured for status: ${status}`);
-        return false;
+    if (status.toLowerCase() !== 'delivered') {
+      this.logger.log(`Skipping SMS for status "${status}" — only sent on delivered`);
+      return false;
     }
+
+    const data = this.extractOrderData(order);
+    const message = this.buildSmsMessage(status, data);
+
+    this.logger.log(
+      `Sending delivery SMS for ${data.orderNumber} to ${data.phoneNumber}`,
+    );
+
+    return this.beemSms.sendSms(
+      data.phoneNumber,
+      message,
+      `sale:delivered`,
+      data.orderNumber,
+    );
   }
 }

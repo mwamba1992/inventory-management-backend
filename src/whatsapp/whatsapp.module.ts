@@ -18,6 +18,7 @@ import { WarehouseModule } from '../settings/warehouse/warehouse.module';
 import { CommonModule } from '../settings/common/common.module';
 import { SaleModule } from '../sale/sale.module';
 import { SharedModule } from '../shared/shared.module';
+import { BeemSmsModule } from '../beem-sms/beem-sms.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SharedModule } from '../shared/shared.module';
     WarehouseModule,
     CommonModule,
     SharedModule,
+    BeemSmsModule,
     forwardRef(() => SaleModule), // Use forwardRef to avoid circular dependency
   ],
   controllers: [WhatsAppController],

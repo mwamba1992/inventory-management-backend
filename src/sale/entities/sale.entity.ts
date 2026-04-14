@@ -52,7 +52,7 @@ export class Sale {
   @Column({
     type: 'enum',
     enum: SaleStatus,
-    default: SaleStatus.DELIVERED,
+    default: SaleStatus.PENDING,
   })
   status: SaleStatus;
 
