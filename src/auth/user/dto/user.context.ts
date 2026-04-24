@@ -26,12 +26,22 @@ export class UserContextService {
 
   getBusinessId(): number {
     const payload = this.request['user'];
-    const businessId = payload?.businessId;
-    if (!businessId) {
-      throw new ForbiddenException(
-        'Business context not available. Please log out and log back in.',
-      );
+    if (payload?.businessId) {
+      return payload.businessId;
     }
-    return businessId;
+
+    const headerBusinessId = this.request.headers['x-business-id'];
+    if (headerBusinessId) {
+      return Number(headerBusinessId);
+    }
+
+    const defaultBusinessId = process.env.DEFAULT_BUSINESS_ID;
+    if (defaultBusinessId) {
+      return Number(defaultBusinessId);
+    }
+
+    throw new ForbiddenException(
+      'Business context not available. Please log out and log back in.',
+    );
   }
 }
