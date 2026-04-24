@@ -38,6 +38,7 @@ import { CreateItemStockDistributionDto } from './dto/create-item-stock-distribu
 import { UpdateItemStockDistributionDto } from './dto/update-item-stock-distribution.dto';
 import { ItemStockDistribution } from './entities/item-stock-distribution.entity';
 import { CloudinaryService } from './services/cloudinary.service';
+import { Public } from '../../utils/decorators';
 
 @ApiTags('Items')
 @Controller('items')
@@ -55,6 +56,7 @@ export class ItemController {
     return this.itemService.create(createItemDto);
   }
 
+  @Public()
   @Get()
   findAll(): Promise<Item[]> {
     return this.itemService.findAll();
@@ -68,6 +70,7 @@ export class ItemController {
     return this.itemService.createItemStock(createItemStockDto);
   }
 
+  @Public()
   @Get('item-stocks')
   async findAllItemStocks(): Promise<ItemStock[]> {
     return this.itemService.findAllItemStocks();
@@ -223,11 +226,13 @@ export class ItemController {
     return this.itemService.createItemPrice(createItemPriceDto);
   }
 
+  @Public()
   @Get('item-prices')
   async findAllItemPrices(): Promise<ItemPrice[]> {
     return this.itemService.findAllItemPrices();
   }
 
+  @Public()
   @Get('item-prices/:id')
   async findOneItemPrice(
     @Param('id', ParseIntPipe) id: number,
@@ -445,6 +450,7 @@ export class ItemController {
   }
 
   // ========== GENERIC :id ROUTES (must be last) ==========
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Item> {
     return this.itemService.findOne(id);

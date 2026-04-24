@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BrandService } from './brand.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
+import { Public } from '../../utils/decorators';
 
 @ApiTags('Brands')
 @Controller('brands')
@@ -17,6 +18,7 @@ export class BrandController {
     return this.brandService.create(createBrandDto);
   }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get all brands' })
   @ApiResponse({ status: 200, description: 'Returns all brands' })
@@ -24,6 +26,7 @@ export class BrandController {
     return this.brandService.findAll();
   }
 
+  @Public()
   @Get('active')
   @ApiOperation({ summary: 'Get all active brands' })
   @ApiResponse({ status: 200, description: 'Returns all active brands' })
@@ -45,6 +48,7 @@ export class BrandController {
     return this.brandService.getActiveBrandsCount();
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get a brand by ID' })
   @ApiResponse({ status: 200, description: 'Returns the brand' })
