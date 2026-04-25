@@ -13,6 +13,30 @@ export class OrderNotificationService {
     private readonly beemSms: BeemSmsService,
   ) {}
 
+  // Hard cap at 2 SMS parts to control Beem cost.
+  // GSM-7 multipart: 153 chars/part. UCS-2 (Unicode): 67 chars/part.
+  private static readonly MAX_GSM_CHARS = 305;
+  private static readonly MAX_UCS_CHARS = 134;
+
+  private capSmsLength(message: string, items: string): string {
+    const isUnicode = /[^\x00-\x7F]/.test(message);
+    const max = isUnicode
+      ? OrderNotificationService.MAX_UCS_CHARS
+      : OrderNotificationService.MAX_GSM_CHARS;
+    if (message.length <= max) return message;
+
+    // Try shrinking the items list — that's the only field that varies wildly.
+    const overflow = message.length - max;
+    const minItemsLen = 5;
+    if (items && items.length - overflow - 3 >= minItemsLen) {
+      const truncatedItems = items.slice(0, items.length - overflow - 3) + '...';
+      return message.replace(`Bidhaa: ${items}`, `Bidhaa: ${truncatedItems}`);
+    }
+
+    // Fallback: hard cut (preserves structure of last line where possible).
+    return message.slice(0, max - 3) + '...';
+  }
+
   private buildSmsMessage(status: string, data: {
     customerName: string;
     orderNumber: string;
@@ -27,20 +51,28 @@ export class OrderNotificationService {
       : Math.round(totalNum).toLocaleString('en-US');
     const support = '0789947608';
 
+    let msg: string;
     switch (status.toLowerCase()) {
       case 'confirmed':
       case 'pending':
-        return `Habari ${name}, tumepokea oda yako #${data.orderNumber} ya TZS ${total}. Asante kwa kununua Global Authentics TZ!\nMsaada: ${support} (Simu/WhatsApp)`;
+        msg = `Habari ${name}, tumepokea oda yako #${data.orderNumber}.\nBidhaa: ${data.items}\nJumla: TZS ${total}\nAsante kwa kununua Global Authentics TZ!\nMsaada: ${support} (Simu/WhatsApp)`;
+        break;
       case 'processing':
       case 'ready':
-        return `Habari ${name}, oda yako #${data.orderNumber} ya TZS ${total} inasafirishwa. Tutawasiliana nawe hivi karibuni.\nMsaada: ${support} (Simu/WhatsApp)`;
+        msg = `Habari ${name}, oda yako #${data.orderNumber} inasafirishwa.\nBidhaa: ${data.items}\nJumla: TZS ${total}\nTutawasiliana nawe hivi karibuni.\nMsaada: ${support} (Simu/WhatsApp)`;
+        break;
       case 'delivered':
-        return `Habari ${name}, oda yako #${data.orderNumber} ya TZS ${total} imefikishwa salama. Asante kwa kununua, karibu tena Global Authentics TZ!\nMaswali/Msaada: ${support} (Simu/WhatsApp)`;
+        msg = `Habari ${name}, oda yako #${data.orderNumber} imefikishwa salama.\nBidhaa: ${data.items}\nJumla: TZS ${total}\nAsante kwa kununua, karibu tena Global Authentics TZ!\nMaswali/Msaada: ${support} (Simu/WhatsApp)`;
+        break;
       case 'cancelled':
-        return `Habari ${name}, oda yako #${data.orderNumber} imesitishwa. Tafadhali piga ${support} (Simu/WhatsApp) kwa maelezo zaidi.`;
+        msg = `Habari ${name}, oda yako #${data.orderNumber} imesitishwa.\nBidhaa: ${data.items}\nTafadhali piga ${support} (Simu/WhatsApp) kwa maelezo zaidi.`;
+        break;
       default:
-        return `Habari ${name}, hali ya oda yako #${data.orderNumber} imebadilika kuwa: ${status}.\nMaswali: ${support} (Simu/WhatsApp)`;
+        msg = `Habari ${name}, hali ya oda yako #${data.orderNumber} imebadilika kuwa: ${status}.\nMaswali: ${support} (Simu/WhatsApp)`;
+        break;
     }
+
+    return this.capSmsLength(msg, data.items);
   }
 
   /**
