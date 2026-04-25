@@ -21,19 +21,25 @@ export class OrderNotificationService {
     deliveryAddress: string;
   }): string {
     const name = data.customerName.split(' ')[0] || 'Mteja';
+    const totalNum = Number(data.total);
+    const total = isNaN(totalNum)
+      ? data.total
+      : Math.round(totalNum).toLocaleString('en-US');
+    const support = '0789947608';
+
     switch (status.toLowerCase()) {
       case 'confirmed':
       case 'pending':
-        return `Habari ${name}, tumepokea oda yako ${data.orderNumber}. Jumla: TZS ${data.total}. Asante kwa kununua Global Authentics!`;
+        return `Habari ${name}, tumepokea oda yako #${data.orderNumber} ya TZS ${total}. Asante kwa kununua Global Authentics TZ!\nMsaada: ${support} (Simu/WhatsApp)`;
       case 'processing':
       case 'ready':
-        return `Habari ${name}, oda yako ${data.orderNumber} inasafirishwa. Jumla: TZS ${data.total}. Karibu Global Authentics!`;
+        return `Habari ${name}, oda yako #${data.orderNumber} ya TZS ${total} inasafirishwa. Tutawasiliana nawe hivi karibuni.\nMsaada: ${support} (Simu/WhatsApp)`;
       case 'delivered':
-        return `Habari ${name}, oda yako ${data.orderNumber} imefikishwa. Jumla: TZS ${data.total}. Asante, karibu tena Global Authentics!`;
+        return `Habari ${name}, oda yako #${data.orderNumber} ya TZS ${total} imefikishwa salama. Asante kwa kununua, karibu tena Global Authentics TZ!\nMaswali/Msaada: ${support} (Simu/WhatsApp)`;
       case 'cancelled':
-        return `Habari ${name}, oda yako ${data.orderNumber} imesitishwa. Tafadhali wasiliana nasi kwa maelezo zaidi.`;
+        return `Habari ${name}, oda yako #${data.orderNumber} imesitishwa. Tafadhali piga ${support} (Simu/WhatsApp) kwa maelezo zaidi.`;
       default:
-        return `Habari ${name}, hali ya oda yako ${data.orderNumber} imebadilika kuwa: ${status}.`;
+        return `Habari ${name}, hali ya oda yako #${data.orderNumber} imebadilika kuwa: ${status}.\nMaswali: ${support} (Simu/WhatsApp)`;
     }
   }
 
