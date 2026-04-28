@@ -257,20 +257,18 @@ export class SaleService {
   }
 
   async totalSales() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const total = await this.saleRepo
       .createQueryBuilder('sale')
       .select('SUM(sale.amountPaid)', 'totalSales')
       .where('sale.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
       .getRawOne();
 
-    if (!total) {
-      throw new NotFoundException('No sales found');
-    }
+    // Postgres lowercases unquoted aliases — accept either spelling.
+    const sum =
+      total?.totalSales ?? total?.totalsales ?? 0;
 
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-      totalSales: total.totalSales || 0,
+      totalSales: Number(sum) || 0,
     };
   }
 
