@@ -11,13 +11,27 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CashService } from './cash.service';
+import { PurchaseService } from './purchase.service';
 import { CreateCashMovementDto } from './dto/create-cash-movement.dto';
 import { CashQueryDto } from './dto/cash-query.dto';
+import { RecordPurchaseDto } from './dto/record-purchase.dto';
 
 @ApiTags('Cash')
 @Controller('cash')
 export class CashController {
-  constructor(private readonly cashService: CashService) {}
+  constructor(
+    private readonly cashService: CashService,
+    private readonly purchaseService: PurchaseService,
+  ) {}
+
+  @Post('purchases')
+  @ApiOperation({
+    summary:
+      'Record an inventory purchase: creates inventory transaction + bumps stock in-transit + records cash-out, atomically',
+  })
+  recordPurchase(@Body() dto: RecordPurchaseDto) {
+    return this.purchaseService.recordPurchase(dto);
+  }
 
   @Post('movements')
   @ApiOperation({
