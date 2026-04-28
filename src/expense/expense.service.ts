@@ -5,11 +5,6 @@ import { Expense } from './entities/expense.entity';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { Sale } from '../sale/entities/sale.entity';
 import { UserContextService } from '../auth/user/dto/user.context';
-import { CashService } from '../cash/cash.service';
-import {
-  CashMovementSource,
-  CashMovementType,
-} from '../cash/entities/cash-movement.entity';
 
 @Injectable()
 export class ExpenseService {
@@ -21,7 +16,6 @@ export class ExpenseService {
     @InjectRepository(Sale)
     private readonly saleRepo: Repository<Sale>,
     private readonly userContextService: UserContextService,
-    private readonly cashService: CashService,
   ) {}
 
   async update(
@@ -38,33 +32,12 @@ export class ExpenseService {
     return this.expenseRepo.save(expense);
   }
   async create(createExpenseDto: CreateExpenseDto): Promise<Expense> {
-    const businessId = this.userContextService.getBusinessId();
     const expense = this.expenseRepo.create({
       ...createExpenseDto,
       createdBy: 'user',
-      businessId,
+      businessId: this.userContextService.getBusinessId(),
     });
-    const saved = await this.expenseRepo.save(expense);
-
-    // Auto-record cash outflow.
-    try {
-      await this.cashService.recordMovement({
-        type: CashMovementType.OUT,
-        source: CashMovementSource.EXPENSE,
-        sourceId: saved.id,
-        amount: Number(saved.amount),
-        notes: `${saved.title}${saved.category ? ` (${saved.category})` : ''}`,
-        occurredAt: saved.expenseDate ?? new Date(),
-        businessId,
-      });
-    } catch (err) {
-      this.logger.error(
-        `Failed to record cash outflow for expense ${saved.id}: ${err.message}`,
-      );
-      // Don't throw — keep the expense even if cash logging fails.
-    }
-
-    return saved;
+    return this.expenseRepo.save(expense);
   }
 
   async findAll(): Promise<Expense[]> {

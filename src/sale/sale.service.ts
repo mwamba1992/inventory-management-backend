@@ -18,11 +18,6 @@ import { Warehouse } from '../settings/warehouse/entities/warehouse.entity';
 import { ItemStock } from '../items/item/entities/item-stock.entity';
 import { OrderNotificationService } from '../whatsapp/services/order-notification.service';
 import { UserContextService } from '../auth/user/dto/user.context';
-import { CashService } from '../cash/cash.service';
-import {
-  CashMovementSource,
-  CashMovementType,
-} from '../cash/entities/cash-movement.entity';
 
 
 @Injectable()
@@ -43,7 +38,6 @@ export class SaleService {
     @Inject(forwardRef(() => OrderNotificationService))
     private readonly orderNotificationService: OrderNotificationService,
     private readonly userContextService: UserContextService,
-    private readonly cashService: CashService,
   ) {}
 
   // sale.service.ts
@@ -181,32 +175,6 @@ export class SaleService {
 
     // Save the updated sale
     const updatedSale = await this.saleRepo.save(sale);
-
-    // Auto-record cash inflow on first transition to delivered.
-    // Idempotent: only fires if previousStatus !== delivered (i.e. not a no-op
-    // delivered→delivered re-save and not on a backward flip we'd seen before).
-    if (
-      status === SaleStatus.DELIVERED &&
-      previousStatus !== SaleStatus.DELIVERED
-    ) {
-      try {
-        await this.cashService.recordMovement({
-          type: CashMovementType.IN,
-          source: CashMovementSource.SALE,
-          sourceId: sale.id,
-          amount: Number(sale.amountPaid),
-          notes: `Sale #SALE-${sale.id} — ${sale.item?.name ?? 'item'}`,
-          occurredAt: sale.deliveredAt ?? new Date(),
-          businessId: sale.businessId,
-        });
-        this.logger.log(`Sale ${id} cash inflow recorded`);
-      } catch (err) {
-        this.logger.error(
-          `Failed to record cash inflow for sale ${id}: ${err.message}`,
-        );
-        // Don't throw — cash logging shouldn't block status update.
-      }
-    }
 
     // Send WhatsApp notification (template message)
     try {
