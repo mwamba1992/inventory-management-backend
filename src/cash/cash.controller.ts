@@ -56,6 +56,37 @@ export class CashController {
     return this.cashService.getBalance();
   }
 
+  @Get('statement')
+  @ApiOperation({
+    summary: 'Cash flow statement: in vs out grouped by source for a date range',
+  })
+  getStatement(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.cashService.getStatement(startDate, endDate);
+  }
+
+  @Get('timeline')
+  @ApiOperation({
+    summary: 'Daily cash flow + running balance for a date range (for charts)',
+  })
+  getTimeline(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.cashService.getTimeline(startDate, endDate);
+  }
+
+  @Get('runway')
+  @ApiOperation({
+    summary:
+      'Runway estimate based on current balance vs last-30-day average daily burn',
+  })
+  getRunway() {
+    return this.cashService.getRunway();
+  }
+
   @Get('movements/:id')
   @ApiOperation({ summary: 'Get a single cash movement' })
   findOne(@Param('id', ParseIntPipe) id: number) {

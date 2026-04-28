@@ -5,11 +5,13 @@ import { ExpenseService } from './expense.service';
 import { ExpenseController } from './expense.controller';
 import { Sale } from '../sale/entities/sale.entity';
 import { SharedModule } from '../shared/shared.module';
+import { CashModule } from '../cash/cash.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Expense, Sale]),
     SharedModule,
+    CashModule,
   ],
   controllers: [ExpenseController],
   providers: [ExpenseService],
