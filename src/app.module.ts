@@ -47,6 +47,8 @@ import { MetaAdsModule } from './meta-ads/meta-ads.module';
 import { MetaAdInsight } from './meta-ads/entities/meta-ad-insight.entity';
 import { BeemSmsModule } from './beem-sms/beem-sms.module';
 import { SmsMessage } from './beem-sms/entities/sms-message.entity';
+import { CashModule } from './cash/cash.module';
+import { CashMovement } from './cash/entities/cash-movement.entity';
 
 @Module({
   imports: [
@@ -88,6 +90,7 @@ import { SmsMessage } from './beem-sms/entities/sms-message.entity';
         WhatsAppSession,
         MetaAdInsight,
         SmsMessage,
+        CashMovement,
       ],
       database: process.env.DB_DATABASE || 'inventorydb',
       schema: process.env.DB_SCHEMA || 'core',
@@ -113,6 +116,7 @@ import { SmsMessage } from './beem-sms/entities/sms-message.entity';
     ReportsModule,
     MetaAdsModule,
     BeemSmsModule,
+    CashModule,
   ],
   controllers: [AppController],
   providers: [AppService],
