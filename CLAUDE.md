@@ -179,15 +179,23 @@ Key env vars (in .env):
 - No custom middleware or pipes detected; validation uses NestJS built-in ValidationPipe
 - Swagger auto-generated from decorators with persistent authorization
 
+## Data Query Rules — READ BEFORE RUNNING SQL
+
+- **NEVER trust aggregated stock from multi-join queries.** Joining `item_stock` with `sale`, `item_price`, or other 1:N tables and using `SUM(st.quantity)` multiplies stock by the number of joined rows. Incident 2026-04-15: reported Pop 3R as 10 units when real was 2 — led to wrong restock advice.
+- **Authoritative stock query:** `SELECT "warehouseId", quantity, "inTransit" FROM core.item_stock WHERE "itemId" = X;` — one row per warehouse, raw numbers.
+- **Cross-check stock** by running the simple query above before quoting any number. If an aggregated query gives a different total, the aggregated one is wrong.
+- **Show the source** when quoting numbers. Say where the data came from so the user can verify.
+- **Flag uncertainty** when a number looks suspicious instead of building confident advice on it.
+
 ## Business Context (GLOBAL AUTHENTICS TZ — business_id=1)
 
 - Two tenants in DB: GLOBAL AUTHENTICS TZ (active, wearables/audio retail) and PRIME ROOT (id=2, supplements, no sales yet)
 - Walk-in customer placeholder: customer name `WALK IN KARIAKOO` — exclude from retention/customer analytics (already filtered in `/reports/retention`)
 - Top brands by revenue (lifetime): Samsung (10.8M), Amazfit (3.6M), Xiaomi/Redmi (3.5M), Nothing (3.1M), Pixel (2.7M)
-- Buyer profile: classic/rugged Samsung watches sell best (Watch 6 Classic, Ultra). Apple Watch and HAINO TEKO/NAVIFORCE/Firebolt do NOT sell — stop reordering these.
+- Buyer profile: classic/rugged Samsung watches sell best (Watch 6 Classic, Ultra). Apple Watch and HAINO TEKO/Firebolt do NOT sell — stop reordering these. Naviforce sells slowly at clearance prices (60K) — clear the pile that arrived but do NOT reorder.
 - USED premium watches command higher avg ticket (360K) than NEW (250K) — refurb-premium is the sweet spot
 - Repeat rate ~9.6% (target 25%); 60% of inventory cost trapped in slow movers (>90 days idle)
-- Naviforce 30 units = in-transit, never received (PROD-080 row id 92 set to qty=0, inTransit=30)
+- Naviforce 30-unit shipment arrived (received around 2026-04-25). PROD-080 currently 28 on-hand at 60K each — first 2 units sold the same day they were stocked. Treat as **liquidation only** (not in the reorder pipeline) — clearing the pile at 60K is ~1.68M latent revenue worth chasing, but do NOT restock.
 
 ## Open Purchase Order Plan (last reviewed 2026-04-08)
 
@@ -219,7 +227,7 @@ Key env vars (in .env):
 - User's existing prices are reasonable; ~58% ROI projected on this 4M order at current sell prices (not 114% I initially claimed using Jiji data)
 
 ### Do NOT reorder
-Apple Watch line, HAINO TEKO line, NAVIFORCE (PROD-080 currently 0 on-hand / 30 in-transit, never received), Firebolt, Hummer Pulse, Noise Vortex, Fast Track. Supplements are PRIME ROOT (business_id=2), not Global Authentics.
+Apple Watch line, HAINO TEKO line, NAVIFORCE (PROD-080 — shipment arrived 2026-04-25, 28 on-hand; sell through at 60K, do NOT restock), Firebolt, Hummer Pulse, Noise Vortex, Fast Track. Supplements are PRIME ROOT (business_id=2), not Global Authentics.
 
 ### Brand preferences confirmed
 - Buyer wants **Classic and Rugged** Samsung (not FE, not regular Watch 6)
