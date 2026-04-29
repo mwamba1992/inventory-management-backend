@@ -234,14 +234,20 @@ export class OrderNotificationService {
   }
 
   /**
-   * Send notification based on order status — SMS sent on delivered only
+   * Send notification on delivered status — fires BOTH:
+   *   1) WhatsApp template (order_delivered)
+   *   2) Beem SMS (Swahili delivery confirmation)
+   * Both run independently; one failing doesn't block the other.
+   * Returns true if either channel succeeded.
    */
   async sendStatusNotification(
     order: WhatsAppOrder | Sale,
     status: string,
   ): Promise<boolean> {
     if (status.toLowerCase() !== 'delivered') {
-      this.logger.log(`Skipping SMS for status "${status}" — only sent on delivered`);
+      this.logger.log(
+        `Skipping notifications for status "${status}" — only sent on delivered`,
+      );
       return false;
     }
 
@@ -249,14 +255,29 @@ export class OrderNotificationService {
     const message = this.buildSmsMessage(status, data);
 
     this.logger.log(
-      `Sending delivery SMS for ${data.orderNumber} to ${data.phoneNumber}`,
+      `Sending delivery notifications for ${data.orderNumber} to ${data.phoneNumber}`,
     );
 
-    return this.beemSms.sendSms(
-      data.phoneNumber,
-      message,
-      `sale:delivered`,
-      data.orderNumber,
+    // Fire both channels in parallel; capture success of each independently.
+    const [whatsappResult, smsResult] = await Promise.allSettled([
+      this.sendOrderDelivered(order),
+      this.beemSms.sendSms(
+        data.phoneNumber,
+        message,
+        `sale:delivered`,
+        data.orderNumber,
+      ),
+    ]);
+
+    const whatsappOk =
+      whatsappResult.status === 'fulfilled' && whatsappResult.value === true;
+    const smsOk =
+      smsResult.status === 'fulfilled' && smsResult.value === true;
+
+    this.logger.log(
+      `Delivery notifications for ${data.orderNumber}: WhatsApp=${whatsappOk}, SMS=${smsOk}`,
     );
+
+    return whatsappOk || smsOk;
   }
 }

@@ -86,22 +86,8 @@ export class SaleService {
     });
     const savedSale = await this.saleRepo.save(sale);
 
-    // Auto-send "order delivered" WhatsApp notification on creation
-    try {
-      const sent = await this.orderNotificationService.sendStatusNotification(
-        savedSale,
-        SaleStatus.DELIVERED,
-      );
-      if (sent) {
-        savedSale.whatsappNotified = true;
-        await this.saleRepo.save(savedSale);
-      }
-    } catch (err) {
-      this.logger.error(
-        `Failed to send delivered notification for new sale ${savedSale.id}: ${err.message}`,
-      );
-    }
-
+    // Notifications fire only when status transitions to DELIVERED via
+    // updateSaleStatus() — never on create, regardless of initial status.
     return savedSale;
   }
 
