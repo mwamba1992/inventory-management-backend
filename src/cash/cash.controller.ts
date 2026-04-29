@@ -12,6 +12,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CashService } from './cash.service';
 import { PurchaseService } from './purchase.service';
+import { CashSyncService } from './cash-sync.service';
 import { CreateCashMovementDto } from './dto/create-cash-movement.dto';
 import { CashQueryDto } from './dto/cash-query.dto';
 import { RecordPurchaseDto } from './dto/record-purchase.dto';
@@ -22,7 +23,17 @@ export class CashController {
   constructor(
     private readonly cashService: CashService,
     private readonly purchaseService: PurchaseService,
+    private readonly cashSyncService: CashSyncService,
   ) {}
+
+  @Post('sync')
+  @ApiOperation({
+    summary:
+      'Reconcile cash ledger with sales/expenses since cutoff (defaults to start of today). Only inserts missing rows — safe to run repeatedly.',
+  })
+  syncFromSalesAndExpenses(@Body() body: { since?: string } = {}) {
+    return this.cashSyncService.syncAll(body?.since);
+  }
 
   @Post('purchases')
   @ApiOperation({
