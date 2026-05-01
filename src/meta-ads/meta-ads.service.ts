@@ -222,11 +222,49 @@ export class MetaAdsService {
   }
 
   /**
-   * Sync yesterday's data for current authenticated user
+   * Sync everything since the last stored insight up through today.
+   * Used by the UI sync button and the daily cron — automatically catches up
+   * any gap (cron failure, missed days) instead of only pulling yesterday.
+   */
+  async syncGaps(businessId: number): Promise<number> {
+    const today = new Date().toISOString().split('T')[0];
+
+    const lastRow = await this.insightRepo
+      .createQueryBuilder('i')
+      .select('MAX(i.date)', 'maxDate')
+      .where('i.business_id = :businessId', { businessId })
+      .getRawOne();
+
+    let start: string;
+    if (lastRow?.maxDate) {
+      // Start the day AFTER the last synced date so we don't refetch a complete day.
+      const next = new Date(lastRow.maxDate);
+      next.setDate(next.getDate() + 1);
+      start = next.toISOString().split('T')[0];
+    } else {
+      // No prior data — pull last 30 days as a sane initial backfill.
+      const fallback = new Date();
+      fallback.setDate(fallback.getDate() - 30);
+      start = fallback.toISOString().split('T')[0];
+    }
+
+    if (start > today) {
+      this.logger.log(
+        `Meta Ads sync: already up to date (lastDate=${lastRow?.maxDate})`,
+      );
+      return 0;
+    }
+
+    this.logger.log(`Meta Ads sync: pulling ${start} → ${today}`);
+    return this.fetchAndStoreInsights(start, today, businessId);
+  }
+
+  /**
+   * Sync gaps for the currently authenticated user — exposed via UI button.
    */
   async syncYesterdayForCurrentUser(): Promise<number> {
     const businessId = this.userContextService.getBusinessId();
-    return this.syncYesterday(businessId);
+    return this.syncGaps(businessId);
   }
 
   /**

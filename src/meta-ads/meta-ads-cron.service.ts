@@ -18,8 +18,8 @@ export class MetaAdsCronService {
         return;
       }
 
-      const count = await this.metaAdsService.syncYesterday(1);
-      this.logger.log(`Pulled ${count} Meta Ad insight rows for yesterday`);
+      const count = await this.metaAdsService.syncGaps(1);
+      this.logger.log(`Pulled ${count} Meta Ad insight rows (gap-fill since last sync)`);
     } catch (error) {
       this.logger.error(
         `Failed to pull Meta Ads insights: ${error.message}`,
