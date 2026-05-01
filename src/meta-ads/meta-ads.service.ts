@@ -235,10 +235,13 @@ export class MetaAdsService {
       .where('i.business_id = :businessId', { businessId })
       .getRawOne();
 
+    // Postgres lowercases unquoted aliases — accept either spelling.
+    const maxDate = lastRow?.maxDate ?? lastRow?.maxdate ?? null;
+
     let start: string;
-    if (lastRow?.maxDate) {
+    if (maxDate) {
       // Start the day AFTER the last synced date so we don't refetch a complete day.
-      const next = new Date(lastRow.maxDate);
+      const next = new Date(maxDate);
       next.setDate(next.getDate() + 1);
       start = next.toISOString().split('T')[0];
     } else {
@@ -250,7 +253,7 @@ export class MetaAdsService {
 
     if (start > today) {
       this.logger.log(
-        `Meta Ads sync: already up to date (lastDate=${lastRow?.maxDate})`,
+        `Meta Ads sync: already up to date (lastDate=${maxDate})`,
       );
       return 0;
     }
