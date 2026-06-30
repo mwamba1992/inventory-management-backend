@@ -19,6 +19,10 @@ import { ItemStock } from '../items/item/entities/item-stock.entity';
 import { OrderNotificationService } from '../whatsapp/services/order-notification.service';
 import { UserContextService } from '../auth/user/dto/user.context';
 
+interface CreateSaleOptions {
+  deductStock?: boolean;
+  status?: SaleStatus;
+}
 
 @Injectable()
 export class SaleService {
@@ -41,7 +45,7 @@ export class SaleService {
   ) {}
 
   // sale.service.ts
-  async create(dto: CreateSaleDto) {
+  async create(dto: CreateSaleDto, options: CreateSaleOptions = {}) {
     const customer = await this.customerRepo.findOneBy({ id: dto.customerId });
     const item = await this.itemRepo.findOneBy({ id: dto.itemId });
     const warehouse = await this.wareHouseRepository.findOneBy({
@@ -53,21 +57,24 @@ export class SaleService {
     if (!warehouse) throw new NotFoundException('Warehouse not found');
 
     const quantity = dto.quantity;
+    const shouldDeductStock = options.deductStock !== false;
 
-    // get stock
-    const stock = await this.itemStockRepo.findOne({
-      where: { item: { id: item.id }, warehouse: { id: warehouse.id } },
-    });
+    if (shouldDeductStock) {
+      // get stock
+      const stock = await this.itemStockRepo.findOne({
+        where: { item: { id: item.id }, warehouse: { id: warehouse.id } },
+      });
 
-    // @ts-expect-error
-    if (!stock || stock.quantity < quantity) {
-      throw new BadRequestException('Insufficient stock in selected warehouse');
+      // @ts-expect-error
+      if (!stock || stock.quantity < quantity) {
+        throw new BadRequestException('Insufficient stock in selected warehouse');
+      }
+
+      // reduce inventory
+      // @ts-expect-error
+      stock.quantity -= quantity;
+      await this.itemStockRepo.save(stock);
     }
-
-    // reduce inventory
-    // @ts-expect-error
-    stock.quantity -= quantity;
-    await this.itemStockRepo.save(stock);
 
     // update sales  account
 
@@ -79,7 +86,7 @@ export class SaleService {
       quantity: quantity,
       amountPaid: dto.amountPaid,
       remarks: dto.remarks,
-      status: SaleStatus.PENDING,
+      status: options.status ?? SaleStatus.PENDING,
       businessId: this.userContextService.getBusinessId(),
       createdAt: new Date(), // createdAt
       updatedAt: new Date(), // updatedAt
@@ -195,27 +202,68 @@ export class SaleService {
     return updatedSale;
   }
 
-  async fetchRecentSales(limit: number = 10) {
+  /**
+   * Build a TypeORM `createdAt` condition from an optional date range.
+   * Returns undefined when no dates are given, so callers fall back to all-time.
+   */
+  private buildCreatedAtFilter(startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // include the whole end day
+      return Between(start, end);
+    } else if (startDate) {
+      return MoreThanOrEqual(new Date(startDate));
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      return LessThan(end);
+    }
+    return undefined;
+  }
+
+  async fetchRecentSales(limit: number = 10, startDate?: string, endDate?: string) {
+    const where: any = { businessId: this.userContextService.getBusinessId() };
+    const createdAt = this.buildCreatedAtFilter(startDate, endDate);
+    if (createdAt) where.createdAt = createdAt;
+
     const sales = await this.saleRepo.find({
-      where: { businessId: this.userContextService.getBusinessId() },
+      where,
       order: { createdAt: 'DESC' },
-      take: limit,
+      // When a date range is given, return everything in range (no cap) so the
+      // report table is complete; otherwise keep the default "latest N" view.
+      ...(createdAt ? {} : { take: limit }),
       relations: ['customer', 'item', 'warehouseId'],
     });
 
-    if (!sales || sales.length === 0) {
+    // Only treat "no results" as an error for the unfiltered dashboard call.
+    // An empty date-filtered range is valid (e.g. no sales that month).
+    if (!createdAt && (!sales || sales.length === 0)) {
       throw new NotFoundException('No recent sales found');
     }
 
     return sales;
   }
 
-  async totalSales() {
-    const total = await this.saleRepo
+  async totalSales(startDate?: string, endDate?: string) {
+    const qb = this.saleRepo
       .createQueryBuilder('sale')
       .select('SUM(sale.amountPaid)', 'totalSales')
-      .where('sale.business_id = :businessId', { businessId: this.userContextService.getBusinessId() })
-      .getRawOne();
+      .where('sale.business_id = :businessId', { businessId: this.userContextService.getBusinessId() });
+
+    if (startDate && endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      qb.andWhere('sale."createdAt" BETWEEN :start AND :end', { start: new Date(startDate), end });
+    } else if (startDate) {
+      qb.andWhere('sale."createdAt" >= :start', { start: new Date(startDate) });
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      qb.andWhere('sale."createdAt" < :end', { end });
+    }
+
+    const total = await qb.getRawOne();
 
     // Postgres lowercases unquoted aliases — accept either spelling.
     const sum =
@@ -226,10 +274,12 @@ export class SaleService {
     };
   }
 
-  async totalSaleCount() {
-    return await this.saleRepo.count({
-      where: { businessId: this.userContextService.getBusinessId() },
-    });
+  async totalSaleCount(startDate?: string, endDate?: string) {
+    const where: any = { businessId: this.userContextService.getBusinessId() };
+    const createdAt = this.buildCreatedAtFilter(startDate, endDate);
+    if (createdAt) where.createdAt = createdAt;
+
+    return await this.saleRepo.count({ where });
   }
 
   async weeklySalesTrends() {

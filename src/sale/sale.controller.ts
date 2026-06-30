@@ -36,18 +36,27 @@ export class SaleController {
   }
 
   @Get('recent-sales')
-  findRecentSales() {
-    return this.saleService.fetchRecentSales(10);
+  findRecentSales(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.saleService.fetchRecentSales(10, startDate, endDate);
   }
 
   @Get('total-sales')
-  findTotalSales() {
-    return this.saleService.totalSales();
+  findTotalSales(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.saleService.totalSales(startDate, endDate);
   }
 
   @Get('total-sales-count')
-  findTotalSalesCount() {
-    return this.saleService.totalSaleCount();
+  findTotalSalesCount(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.saleService.totalSaleCount(startDate, endDate);
   }
   @Post('sales-metrics')
   findSalesMetrics(@Body() dto: any) {
