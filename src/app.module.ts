@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ItemModule } from './items/item/item.module';
@@ -57,6 +58,17 @@ import { CashMovement } from './cash/entities/cash-movement.entity';
       isGlobal: true, // Make ConfigService available globally
       envFilePath: '.env',
     }),
+    // Rate limiting. Registered here but deliberately NOT wired up as a global
+    // APP_GUARD: that would also throttle authenticated admin work (bulk stock
+    // edits, report pulls). Applied per-endpoint via @UseGuards(ThrottlerGuard)
+    // on the public, unauthenticated routes that are worth abusing.
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 30,
+      },
+    ]),
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
     TypeOrmModule.forRoot({
       type: 'postgres',

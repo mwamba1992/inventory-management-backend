@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomerAuthGuard } from './customer-auth.guard';
@@ -31,6 +32,8 @@ export class CustomerAuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({
     summary: 'Register a new customer',
     description: 'Create a new customer account with phone and password. Returns JWT token for authentication.',
@@ -49,6 +52,10 @@ export class CustomerAuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  // Unauthenticated password check: without a limit this is an offline-speed
+  // brute force against every customer phone number.
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({
     summary: 'Login customer',
     description: 'Login with phone number and password. Returns JWT token.',
@@ -67,6 +74,11 @@ export class CustomerAuthController {
   @Public()
   @Post('set-password')
   @HttpCode(HttpStatus.OK)
+  // Claims an account given only a phone number, so the throttle is the only
+  // thing making number enumeration expensive. This is a stopgap: the endpoint
+  // still proves nothing about who owns the phone. See SetPasswordDto.
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({
     summary: 'Set password for existing customer',
     description: 'For customers who placed orders via checkout but never set a password. They can use this to set their password and start logging in.',

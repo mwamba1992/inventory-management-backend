@@ -4,9 +4,16 @@ import { SaleStatus } from '../../sale/entities/sale.entity';
 
 describe('WhatsAppOrderService', () => {
   let service: WhatsAppOrderService;
-  let orderRepository: { findOne: jest.Mock; save: jest.Mock };
+  let orderRepository: {
+    findOne: jest.Mock;
+    save: jest.Mock;
+    create: jest.Mock;
+    count: jest.Mock;
+  };
+  let orderItemRepository: { create: jest.Mock };
   let itemService: { findOne: jest.Mock; updateItemStock: jest.Mock };
-  let customerService: { findAll: jest.Mock };
+  let customerService: { findAll: jest.Mock; create: jest.Mock; update: jest.Mock };
+  let warehouseService: { findOne: jest.Mock };
   let saleService: { create: jest.Mock };
   let orderNotificationService: { sendStatusNotification: jest.Mock };
 
@@ -14,13 +21,23 @@ describe('WhatsAppOrderService', () => {
     orderRepository = {
       findOne: jest.fn(),
       save: jest.fn((order) => Promise.resolve(order)),
+      create: jest.fn((order) => order),
+      count: jest.fn().mockResolvedValue(0),
+    };
+    orderItemRepository = {
+      create: jest.fn((orderItem) => orderItem),
     };
     itemService = {
       findOne: jest.fn(),
       updateItemStock: jest.fn(),
     };
     customerService = {
-      findAll: jest.fn(),
+      findAll: jest.fn().mockResolvedValue([]),
+      create: jest.fn((c) => Promise.resolve({ id: 99, ...c })),
+      update: jest.fn(),
+    };
+    warehouseService = {
+      findOne: jest.fn().mockResolvedValue({ id: 1, name: 'Main' }),
     };
     saleService = {
       create: jest.fn(),
@@ -31,15 +48,81 @@ describe('WhatsAppOrderService', () => {
 
     service = new WhatsAppOrderService(
       orderRepository as any,
-      {} as any,
+      orderItemRepository as any,
       itemService as any,
       customerService as any,
-      {} as any,
+      warehouseService as any,
       saleService as any,
       { sendTextMessage: jest.fn() } as any,
       orderNotificationService as any,
       { getBusinessId: jest.fn().mockReturnValue(1) } as any,
     );
+  });
+
+  describe('createEcommerceOrder pricing', () => {
+    // The storefront cart lives in localStorage, so anything price-shaped in the
+    // request body is attacker-controlled. These tests exist to fail loudly if a
+    // unitPrice from the client is ever trusted again.
+    const baseDto = {
+      customerName: 'Asha',
+      customerPhone: '255712345678',
+      warehouseId: 1,
+      deliveryAddress: 'Kinondoni',
+      items: [{ itemId: 5, quantity: 2 }],
+    };
+
+    const pricedItem = (sellingPrice: number, prices?: any[]) => ({
+      id: 5,
+      name: 'Samsung Watch',
+      prices: prices ?? [{ sellingPrice, isActive: true }],
+      stock: [{ id: 7, quantity: 5, warehouse: { id: 1 } }],
+    });
+
+    it('charges the catalogue price, ignoring a unitPrice sent by the client', async () => {
+      itemService.findOne.mockResolvedValue(pricedItem(750000));
+
+      const order = await service.createEcommerceOrder({
+        ...baseDto,
+        // A tampered cart: the buyer claims this watch costs 1 shilling.
+        items: [{ itemId: 5, quantity: 2, unitPrice: 1 }],
+      } as any);
+
+      expect(order.totalAmount).toBe(1500000);
+      expect(order.items[0].unitPrice).toBe(750000);
+      expect(order.items[0].totalPrice).toBe(1500000);
+    });
+
+    it('uses only the active price when several exist', async () => {
+      itemService.findOne.mockResolvedValue(
+        pricedItem(0, [
+          { sellingPrice: 500000, isActive: false },
+          { sellingPrice: 750000, isActive: true },
+        ]),
+      );
+
+      const order = await service.createEcommerceOrder({
+        ...baseDto,
+        items: [{ itemId: 5, quantity: 1 }],
+      } as any);
+
+      expect(order.items[0].unitPrice).toBe(750000);
+    });
+
+    it('refuses to sell an item that has no active price', async () => {
+      itemService.findOne.mockResolvedValue(
+        pricedItem(0, [{ sellingPrice: 500000, isActive: false }]),
+      );
+
+      await expect(
+        service.createEcommerceOrder({
+          ...baseDto,
+          // Even with a plausible price supplied, no active price means no sale.
+          items: [{ itemId: 5, quantity: 1, unitPrice: 500000 }],
+        } as any),
+      ).rejects.toThrow('no active price');
+
+      expect(orderRepository.save).not.toHaveBeenCalled();
+    });
   });
 
   it('deducts stock once when a WhatsApp order is delivered', async () => {

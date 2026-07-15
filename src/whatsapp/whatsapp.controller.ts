@@ -10,8 +10,10 @@ import {
   Param,
   Put,
   UsePipes,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { MessageHandlerService } from './services/message-handler.service';
 import { WhatsAppOrderService } from './services/whatsapp-order.service';
@@ -157,6 +159,11 @@ export class WhatsAppController {
   @Public()
   @Post('ecommerce-order')
   @HttpCode(HttpStatus.CREATED)
+  // Unauthenticated and it writes to the database and pings the admin on
+  // WhatsApp, so it is the most abusable route in the app. A real buyer places
+  // one order at a time; 5/minute leaves them room and shuts down flooding.
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   // Public and unauthenticated, so the payload is validated and whitelisted here:
   // unknown fields (notably any client-supplied unitPrice) are stripped, and the
   // quantity constraints on the DTO are actually enforced.
