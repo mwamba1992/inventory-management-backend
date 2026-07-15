@@ -39,17 +39,35 @@ const die = (msg) => {
 };
 
 async function fetchCatalogue() {
-  // The public storefront feed: no token needed, and it already tells us which
-  // products have a photo and which don't.
-  const res = await fetch(`${API}/items/storefront`);
-  if (!res.ok) {
+  const auth = args.token ? { Authorization: `Bearer ${args.token}` } : {};
+
+  // Preferred: the storefront feed — sanitised, and it already says which
+  // products have a photo.
+  const res = await fetch(`${API}/items/storefront`, { headers: auth });
+  if (res.ok) return res.json();
+
+  // Fallback for a backend that predates /items/storefront. /items returns the
+  // full entity (cost data and all), so we map it down to the few fields this
+  // script needs rather than passing the whole thing around.
+  const legacy = await fetch(`${API}/items`, { headers: auth });
+  if (!legacy.ok) {
     die(
-      `GET ${API}/items/storefront returned ${res.status}.\n` +
-        `  If this is 400 or 404, the backend running there predates the storefront\n` +
-        `  endpoint — deploy it first, or point --api at a build that has it.`,
+      `Could not read the catalogue.\n` +
+        `  GET ${API}/items/storefront -> ${res.status}\n` +
+        `  GET ${API}/items            -> ${legacy.status}\n` +
+        `  If /items is 401, pass --token=<admin jwt>.`,
     );
   }
-  return res.json();
+
+  console.log('  (using /items — this backend predates /items/storefront)');
+  return (await legacy.json()).map((i) => ({
+    id: i.id,
+    code: i.code,
+    name: i.name,
+    imageUrl: i.imageUrl,
+    sellingPrice: i.prices?.find((p) => p.isActive)?.sellingPrice ?? null,
+    inStock: (i.stock ?? []).reduce((s, x) => s + (x.quantity || 0), 0) > 0,
+  }));
 }
 
 function csvEscape(value) {
