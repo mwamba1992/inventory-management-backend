@@ -2642,17 +2642,56 @@
         ]
       }
     },
+    "/customer-auth/request-otp": {
+      "post": {
+        "description": "Sends a 6-digit SMS code to a customer who has an account but no password yet. Always returns the same response whether or not the number is registered, so it cannot be used to test which numbers have accounts.",
+        "operationId": "CustomerAuthController_requestOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Code sent if the number was eligible"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "summary": "Request a code to set a password",
+        "tags": [
+          "Customer Authentication"
+        ]
+      }
+    },
     "/customer-auth/set-password": {
       "post": {
-        "description": "For customers who placed orders via checkout but never set a password. They can use this to set their password and start logging in.",
+        "description": "For customers who placed orders via checkout but never set a password. Requires the 6-digit code from POST /customer-auth/request-otp, which proves the caller holds the phone number.",
         "operationId": "CustomerAuthController_setPassword",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Password set successfully"
           },
           "400": {
-            "description": "Password already set"
+            "description": "Invalid/expired code, or password already set"
           },
           "404": {
             "description": "Customer not found"
@@ -4419,6 +4458,54 @@
             "type": "string"
           }
         }
+      },
+      "RequestOtpDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Customer phone number",
+            "example": "+255712345678"
+          },
+          "businessId": {
+            "type": "number",
+            "description": "Business ID (optional)",
+            "example": 1
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "SetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Customer phone number",
+            "example": "+255712345678"
+          },
+          "password": {
+            "type": "string",
+            "description": "New password (min 6 characters)",
+            "example": "password123"
+          },
+          "otp": {
+            "type": "string",
+            "description": "6-digit code sent by SMS",
+            "example": "482915"
+          },
+          "businessId": {
+            "type": "number",
+            "description": "Business ID (optional)",
+            "example": 1
+          }
+        },
+        "required": [
+          "phone",
+          "password",
+          "otp"
+        ]
       },
       "UpdateCustomerProfileDto": {
         "type": "object",

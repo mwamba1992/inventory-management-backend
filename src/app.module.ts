@@ -47,6 +47,7 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 import { MetaAdsModule } from './meta-ads/meta-ads.module';
 import { MetaAdInsight } from './meta-ads/entities/meta-ad-insight.entity';
 import { BeemSmsModule } from './beem-sms/beem-sms.module';
+import { PhoneOtp } from './customer-auth/entities/phone-otp.entity';
 import { SmsMessage } from './beem-sms/entities/sms-message.entity';
 import { CashModule } from './cash/cash.module';
 import { CashMovement } from './cash/entities/cash-movement.entity';
@@ -102,6 +103,7 @@ import { CashMovement } from './cash/entities/cash-movement.entity';
         WhatsAppSession,
         MetaAdInsight,
         SmsMessage,
+        PhoneOtp,
         CashMovement,
       ],
       database: process.env.DB_DATABASE || 'inventorydb',

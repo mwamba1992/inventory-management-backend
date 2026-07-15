@@ -5,6 +5,8 @@ import {
   Put,
   Body,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
   Request,
   HttpCode,
   HttpStatus,
@@ -18,6 +20,7 @@ import { CustomerLoginDto } from './dto/customer-login.dto';
 import { UpdateCustomerProfileDto } from './dto/update-customer-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { RequestOtpDto } from './dto/request-otp.dto';
 import { WhatsAppOrderService } from '../whatsapp/services/whatsapp-order.service';
 import { Public } from '../utils/decorators';
 
@@ -72,21 +75,42 @@ export class CustomerAuthController {
   }
 
   @Public()
-  @Post('set-password')
+  @Post('request-otp')
   @HttpCode(HttpStatus.OK)
-  // Claims an account given only a phone number, so the throttle is the only
-  // thing making number enumeration expensive. This is a stopgap: the endpoint
-  // still proves nothing about who owns the phone. See SetPasswordDto.
+  // Every call costs real money in SMS and lands on someone's phone, so this is
+  // throttled harder than the endpoints it guards.
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({
+    summary: 'Request a code to set a password',
+    description:
+      'Sends a 6-digit SMS code to a customer who has an account but no password yet. Always returns the same response whether or not the number is registered, so it cannot be used to test which numbers have accounts.',
+  })
+  @ApiResponse({ status: 200, description: 'Code sent if the number was eligible' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
+  async requestOtp(@Body() dto: RequestOtpDto) {
+    const result = await this.customerAuthService.requestSetPasswordOtp(
+      dto,
+      dto.businessId,
+    );
+    return { success: true, ...result };
+  }
+
+  @Public()
+  @Post('set-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   @ApiOperation({
     summary: 'Set password for existing customer',
-    description: 'For customers who placed orders via checkout but never set a password. They can use this to set their password and start logging in.',
+    description: 'For customers who placed orders via checkout but never set a password. Requires the 6-digit code from POST /customer-auth/request-otp, which proves the caller holds the phone number.',
   })
   @ApiResponse({ status: 200, description: 'Password set successfully' })
   @ApiResponse({ status: 404, description: 'Customer not found' })
-  @ApiResponse({ status: 400, description: 'Password already set' })
-  async setPassword(@Body() dto: SetPasswordDto & { businessId?: number }) {
+  @ApiResponse({ status: 400, description: 'Invalid/expired code, or password already set' })
+  async setPassword(@Body() dto: SetPasswordDto) {
     const result = await this.customerAuthService.setPassword(dto, dto.businessId);
     return {
       success: true,

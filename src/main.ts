@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { writeFileSync } from 'fs';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -11,6 +12,19 @@ if (typeof global.crypto === 'undefined') {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, and it
+  // drops the X-Powered-By: Express giveaway.
+  app.use(
+    helmet({
+      // This process serves JSON, where CSP buys nothing — and helmet's default
+      // policy blocks the inline scripts Swagger UI needs at /api-docs.
+      contentSecurityPolicy: false,
+      // The storefront is a different origin (store.mwendavano.com), so the
+      // default same-origin resource policy would work against us here.
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // Enable CORS with specific configuration for frontend
   app.enableCors({
