@@ -9,6 +9,8 @@ import {
   Logger,
   Param,
   Put,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { MessageHandlerService } from './services/message-handler.service';
@@ -155,9 +157,18 @@ export class WhatsAppController {
   @Public()
   @Post('ecommerce-order')
   @HttpCode(HttpStatus.CREATED)
+  // Public and unauthenticated, so the payload is validated and whitelisted here:
+  // unknown fields (notably any client-supplied unitPrice) are stripped, and the
+  // quantity constraints on the DTO are actually enforced.
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  )
   @ApiOperation({
     summary: 'Create e-commerce order',
-    description: 'Create an order from the e-commerce website. This endpoint accepts customer information, order items, and payment details. The order will be created with PENDING status and inventory will NOT be deducted until admin confirms the order.'
+    description: 'Create an order from the e-commerce website. This endpoint accepts customer information and order items. Prices are resolved server-side from the item catalogue — any price sent by the client is ignored. The order is created with PENDING status and inventory is NOT deducted until admin confirms the order.'
   })
   @ApiResponse({
     status: 201,
@@ -171,7 +182,7 @@ export class WhatsAppController {
     status: 404,
     description: 'Item or warehouse not found'
   })
-  async createEcommerceOrder(@Body() dto: CreateEcommerceOrderDto & { businessId?: number }) {
+  async createEcommerceOrder(@Body() dto: CreateEcommerceOrderDto) {
     this.logger.log(`Received e-commerce order from ${dto.customerName}`);
     const order = await this.orderService.createEcommerceOrder(dto, dto.businessId);
 

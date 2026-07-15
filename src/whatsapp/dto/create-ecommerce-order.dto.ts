@@ -14,10 +14,9 @@ export class EcommerceOrderItemDto {
   @Min(1)
   quantity: number;
 
-  @ApiProperty({ description: 'Unit price at time of order', example: 350400 })
-  @IsNumber()
-  @Min(0)
-  unitPrice: number;
+  // No unitPrice: the server resolves the active selling price from the database.
+  // A price sent by the client is stripped by the whitelisting ValidationPipe and
+  // must never be reintroduced here — the cart it comes from is editable by the buyer.
 }
 
 export class CreateEcommerceOrderDto {
@@ -79,4 +78,11 @@ export class CreateEcommerceOrderDto {
   @IsEnum(PaymentMethod)
   @IsOptional()
   paymentMethod?: PaymentMethod;
+
+  // Declared so the whitelisting ValidationPipe preserves it — the controller
+  // forwards it to the order service, which falls back to the request context.
+  @ApiProperty({ description: 'Business ID (optional)', example: 1, required: false })
+  @IsNumber()
+  @IsOptional()
+  businessId?: number;
 }

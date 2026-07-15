@@ -488,6 +488,67 @@
         ]
       }
     },
+    "/items/storefront": {
+      "get": {
+        "description": "Unauthenticated catalogue feed. Returns retail price and stock only — purchase cost, freight and profit margin are deliberately excluded.",
+        "operationId": "ItemController_findAllForStorefront",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StorefrontItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List products for the public storefront",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
+    "/items/storefront/{id}": {
+      "get": {
+        "description": "Unauthenticated product detail. Same field allowlist as GET /items/storefront.",
+        "operationId": "ItemController_findOneForStorefront",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorefrontItemDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        },
+        "summary": "Get a single product for the public storefront",
+        "tags": [
+          "Items"
+        ]
+      }
+    },
     "/items/item-stocks": {
       "post": {
         "operationId": "ItemController_createItemStock",
@@ -2786,9 +2847,19 @@
     },
     "/whatsapp/ecommerce-order": {
       "post": {
-        "description": "Create an order from the e-commerce website. This endpoint accepts customer information, order items, and payment details. The order will be created with PENDING status and inventory will NOT be deducted until admin confirms the order.",
+        "description": "Create an order from the e-commerce website. This endpoint accepts customer information and order items. Prices are resolved server-side from the item catalogue — any price sent by the client is ignored. The order is created with PENDING status and inventory is NOT deducted until admin confirms the order.",
         "operationId": "WhatsAppController_createEcommerceOrder",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEcommerceOrderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Order created successfully. Returns the created order with order number (e.g., EC2501130001)"
@@ -2973,6 +3044,46 @@
         ]
       }
     },
+    "/sms/send": {
+      "post": {
+        "operationId": "BeemSmsController_send",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendTestSmsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Send a test SMS via Beem (admin only)",
+        "tags": [
+          "SMS"
+        ]
+      }
+    },
+    "/sms/balance": {
+      "get": {
+        "operationId": "BeemSmsController_balance",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Check Beem SMS credit balance",
+        "tags": [
+          "SMS"
+        ]
+      }
+    },
     "/sales": {
       "post": {
         "operationId": "SaleController_create",
@@ -3026,7 +3137,24 @@
     "/sales/recent-sales": {
       "get": {
         "operationId": "SaleController_findRecentSales",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3040,7 +3168,24 @@
     "/sales/total-sales": {
       "get": {
         "operationId": "SaleController_findTotalSales",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3054,7 +3199,24 @@
     "/sales/total-sales-count": {
       "get": {
         "operationId": "SaleController_findTotalSalesCount",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3622,6 +3784,246 @@
           "Meta Ads"
         ]
       }
+    },
+    "/cash/sync": {
+      "post": {
+        "operationId": "CashController_syncFromSalesAndExpenses",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Reconcile cash ledger with sales/expenses since cutoff (defaults to start of today). Only inserts missing rows — safe to run repeatedly.",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/purchases": {
+      "post": {
+        "operationId": "CashController_recordPurchase",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Record an inventory purchase: creates inventory transaction + bumps stock in-transit + records cash-out, atomically",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/movements": {
+      "post": {
+        "operationId": "CashController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCashMovementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a cash movement (manual entry, opening balance, transfer, owner draw, etc.)",
+        "tags": [
+          "Cash"
+        ]
+      },
+      "get": {
+        "operationId": "CashController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List cash movements (filter by date range / method / type / source)",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/balance": {
+      "get": {
+        "operationId": "CashController_getBalance",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Current cash balance per method + total",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/statement": {
+      "get": {
+        "operationId": "CashController_getStatement",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Cash flow statement: in vs out grouped by source for a date range",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/timeline": {
+      "get": {
+        "operationId": "CashController_getTimeline",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Daily cash flow + running balance for a date range (for charts)",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/runway": {
+      "get": {
+        "operationId": "CashController_getRunway",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Runway estimate based on current balance vs last-30-day average daily burn",
+        "tags": [
+          "Cash"
+        ]
+      }
+    },
+    "/cash/movements/{id}": {
+      "get": {
+        "operationId": "CashController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a single cash movement",
+        "tags": [
+          "Cash"
+        ]
+      },
+      "put": {
+        "operationId": "CashController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a cash movement",
+        "tags": [
+          "Cash"
+        ]
+      },
+      "delete": {
+        "operationId": "CashController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Soft-delete a cash movement",
+        "tags": [
+          "Cash"
+        ]
+      }
     }
   },
   "info": {
@@ -3686,6 +4088,130 @@
       "CreateItemDto": {
         "type": "object",
         "properties": {}
+      },
+      "StorefrontCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "WATCHES"
+          },
+          "description": {
+            "type": "object",
+            "example": "Smart watches and wearables",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "description"
+        ]
+      },
+      "StorefrontBrandDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "HUAWEI"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "StorefrontItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 33
+          },
+          "name": {
+            "type": "string",
+            "example": "HUAWEI FIT 3 NEW"
+          },
+          "code": {
+            "type": "object",
+            "example": "PROD-033",
+            "nullable": true
+          },
+          "desc": {
+            "type": "object",
+            "example": "Huawei Fit 3 smart watch",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "new",
+              "used"
+            ],
+            "example": "new"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "category": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StorefrontCategoryDto"
+              }
+            ]
+          },
+          "brand": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StorefrontBrandDto"
+              }
+            ]
+          },
+          "sellingPrice": {
+            "type": "object",
+            "description": "Active retail price. Null when no active price is configured.",
+            "example": 350000,
+            "nullable": true
+          },
+          "inStock": {
+            "type": "boolean",
+            "example": true
+          },
+          "totalStock": {
+            "type": "number",
+            "description": "Units on hand across all warehouses",
+            "example": 12
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code",
+          "desc",
+          "imageUrl",
+          "condition",
+          "createdAt",
+          "category",
+          "brand",
+          "sellingPrice",
+          "inStock",
+          "totalStock"
+        ]
       },
       "CreateItemStockDto": {
         "type": "object",
@@ -3942,6 +4468,104 @@
         "type": "object",
         "properties": {}
       },
+      "EcommerceOrderItemDto": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "number",
+            "description": "Item ID",
+            "example": 1
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity",
+            "example": 2
+          }
+        },
+        "required": [
+          "itemId",
+          "quantity"
+        ]
+      },
+      "CreateEcommerceOrderDto": {
+        "type": "object",
+        "properties": {
+          "customerName": {
+            "type": "string",
+            "description": "Customer full name",
+            "example": "John Doe"
+          },
+          "customerPhone": {
+            "type": "string",
+            "description": "Customer phone number",
+            "example": "255712345678"
+          },
+          "customerEmail": {
+            "type": "string",
+            "description": "Customer email (optional)",
+            "example": "john@example.com"
+          },
+          "customerCity": {
+            "type": "string",
+            "description": "Customer city",
+            "example": "Dar es Salaam"
+          },
+          "customerRegion": {
+            "type": "string",
+            "description": "Customer region",
+            "example": "Kinondoni"
+          },
+          "warehouseId": {
+            "type": "number",
+            "description": "Warehouse ID",
+            "example": 1
+          },
+          "items": {
+            "description": "Order items",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EcommerceOrderItemDto"
+            }
+          },
+          "deliveryAddress": {
+            "type": "string",
+            "description": "Delivery address",
+            "example": "House 123, Street ABC, Kinondoni"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Order notes (optional)",
+            "example": "Please call before delivery"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method (defaults to Cash on Delivery)",
+            "enum": [
+              "cash_on_delivery",
+              "mobile_money",
+              "bank_transfer",
+              "card"
+            ],
+            "example": "cash_on_delivery"
+          },
+          "businessId": {
+            "type": "number",
+            "description": "Business ID (optional)",
+            "example": 1
+          }
+        },
+        "required": [
+          "customerName",
+          "customerPhone",
+          "warehouseId",
+          "items",
+          "deliveryAddress"
+        ]
+      },
+      "SendTestSmsDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateSaleDto": {
         "type": "object",
         "properties": {
@@ -4012,6 +4636,14 @@
             "description": "End date (YYYY-MM-DD)"
           }
         }
+      },
+      "RecordPurchaseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCashMovementDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

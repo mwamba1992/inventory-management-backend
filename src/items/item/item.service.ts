@@ -24,6 +24,7 @@ import { ItemSupplier } from '../../settings/item-suppliers/entities/item-suppli
 import { ColorCategory } from '../../settings/color-category/entities/color-category.entity';
 import { Brand } from '../../settings/brand/entities/brand.entity';
 import { UserContextService } from '../../auth/user/dto/user.context';
+import { StorefrontItemDto } from './dto/storefront-item.dto';
 
 @Injectable()
 export class ItemService {
@@ -138,6 +139,62 @@ export class ItemService {
 
     if (!item) throw new NotFoundException('Item not found');
     return item;
+  }
+
+  // ========== STOREFRONT (PUBLIC, UNAUTHENTICATED) ==========
+
+  /**
+   * Items for the public storefront, mapped to a shape that carries no cost data.
+   * Never widen this to return Item entities: `prices` holds purchase and margin
+   * figures, and everything on these two methods is served without a token.
+   */
+  async findAllForStorefront(): Promise<StorefrontItemDto[]> {
+    const items = await this.itemRepository.find({
+      where: { businessId: this.userContextService.getBusinessId() },
+      relations: ['category', 'brand', 'prices', 'stock'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return items.map((item) => this.toStorefrontItem(item));
+  }
+
+  async findOneForStorefront(id: number): Promise<StorefrontItemDto> {
+    const item = await this.itemRepository.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+      relations: ['category', 'brand', 'prices', 'stock'],
+    });
+
+    if (!item) throw new NotFoundException('Item not found');
+    return this.toStorefrontItem(item);
+  }
+
+  private toStorefrontItem(item: Item): StorefrontItemDto {
+    const activePrice = item.prices?.find((price) => price.isActive);
+    const totalStock = (item.stock ?? []).reduce(
+      (sum, stock) => sum + (stock.quantity || 0),
+      0,
+    );
+
+    return {
+      id: item.id,
+      name: item.name,
+      code: item.code ?? null,
+      desc: item.desc ?? null,
+      imageUrl: item.imageUrl ?? null,
+      condition: item.condition,
+      createdAt: item.createdAt,
+      category: item.category
+        ? {
+            id: item.category.id,
+            code: item.category.code,
+            description: item.category.description ?? null,
+          }
+        : null,
+      brand: item.brand ? { id: item.brand.id, name: item.brand.name } : null,
+      sellingPrice: activePrice ? Number(activePrice.sellingPrice) : null,
+      inStock: totalStock > 0,
+      totalStock,
+    };
   }
 
   async update(id: number, updateItemDto: UpdateItemDto): Promise<Item> {

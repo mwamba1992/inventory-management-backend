@@ -38,6 +38,7 @@ import { CreateItemStockDistributionDto } from './dto/create-item-stock-distribu
 import { UpdateItemStockDistributionDto } from './dto/update-item-stock-distribution.dto';
 import { ItemStockDistribution } from './entities/item-stock-distribution.entity';
 import { CloudinaryService } from './services/cloudinary.service';
+import { StorefrontItemDto } from './dto/storefront-item.dto';
 import { Public } from '../../utils/decorators';
 
 @ApiTags('Items')
@@ -56,10 +57,39 @@ export class ItemController {
     return this.itemService.create(createItemDto);
   }
 
-  @Public()
   @Get()
   findAll(): Promise<Item[]> {
     return this.itemService.findAll();
+  }
+
+  // ========== STOREFRONT (PUBLIC) ==========
+  // Declared before the generic ':id' route so 'storefront' is not swallowed by it.
+
+  @Public()
+  @Get('storefront')
+  @ApiOperation({
+    summary: 'List products for the public storefront',
+    description:
+      'Unauthenticated catalogue feed. Returns retail price and stock only — purchase cost, freight and profit margin are deliberately excluded.',
+  })
+  @ApiResponse({ status: 200, type: [StorefrontItemDto] })
+  findAllForStorefront(): Promise<StorefrontItemDto[]> {
+    return this.itemService.findAllForStorefront();
+  }
+
+  @Public()
+  @Get('storefront/:id')
+  @ApiOperation({
+    summary: 'Get a single product for the public storefront',
+    description:
+      'Unauthenticated product detail. Same field allowlist as GET /items/storefront.',
+  })
+  @ApiResponse({ status: 200, type: StorefrontItemDto })
+  @ApiResponse({ status: 404, description: 'Item not found' })
+  findOneForStorefront(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<StorefrontItemDto> {
+    return this.itemService.findOneForStorefront(id);
   }
 
   // ========== ITEM STOCK CRUD ==========
@@ -70,7 +100,6 @@ export class ItemController {
     return this.itemService.createItemStock(createItemStockDto);
   }
 
-  @Public()
   @Get('item-stocks')
   async findAllItemStocks(): Promise<ItemStock[]> {
     return this.itemService.findAllItemStocks();
@@ -226,13 +255,13 @@ export class ItemController {
     return this.itemService.createItemPrice(createItemPriceDto);
   }
 
-  @Public()
+  // Not @Public(): ItemPrice exposes purchaseAmount, freightAmount and profitMargin.
+  // The storefront reads retail prices from GET /items/storefront instead.
   @Get('item-prices')
   async findAllItemPrices(): Promise<ItemPrice[]> {
     return this.itemService.findAllItemPrices();
   }
 
-  @Public()
   @Get('item-prices/:id')
   async findOneItemPrice(
     @Param('id', ParseIntPipe) id: number,
@@ -450,7 +479,8 @@ export class ItemController {
   }
 
   // ========== GENERIC :id ROUTES (must be last) ==========
-  @Public()
+  // Not @Public(): the 'prices' relation carries cost and margin data.
+  // Public product detail is served by GET /items/storefront/:id.
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Item> {
     return this.itemService.findOne(id);

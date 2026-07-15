@@ -14,6 +14,7 @@ import { ItemService } from '../../items/item/item.service';
 import { CustomerService } from '../../settings/customer/customer.service';
 import { WarehouseService } from '../../settings/warehouse/warehouse.service';
 import { SaleService } from '../../sale/sale.service';
+import { SaleStatus } from '../../sale/entities/sale.entity';
 import { WhatsAppApiService } from './whatsapp-api.service';
 import { OrderNotificationService } from './order-notification.service';
 import { UserContextService } from '../../auth/user/dto/user.context';
@@ -173,6 +174,13 @@ export class WhatsAppOrderService {
         throw new NotFoundException(`Item with ID ${itemDto.itemId} not found`);
       }
 
+      // Price comes from the database, never from the request: dto.unitPrice is
+      // attacker-controlled (the storefront cart lives in localStorage).
+      const activePrice = item.prices?.find((p) => p.isActive);
+      if (!activePrice) {
+        throw new BadRequestException(`Item ${item.name} has no active price`);
+      }
+
       // Check stock availability (but don't deduct yet - will deduct on confirmation/delivery)
       const itemStock = item.stock?.find((s) => s.warehouse?.id === warehouse.id);
       if (!itemStock || itemStock.quantity < itemDto.quantity) {
@@ -181,7 +189,7 @@ export class WhatsAppOrderService {
         );
       }
 
-      const unitPrice = itemDto.unitPrice;
+      const unitPrice = Number(activePrice.sellingPrice);
       const totalPrice = unitPrice * itemDto.quantity;
       totalAmount += totalPrice;
 
@@ -360,6 +368,9 @@ export class WhatsAppOrderService {
             quantity: orderItem.quantity,
             amountPaid: orderItem.totalPrice,
             remarks: `WhatsApp Order #${order.orderNumber}`,
+          }, {
+            deductStock: false,
+            status: SaleStatus.DELIVERED,
           });
 
           this.logger.log(
