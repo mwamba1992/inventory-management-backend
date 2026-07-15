@@ -20,6 +20,7 @@ import {
   ProductAdRecommendation,
 } from './interfaces/ad-performance.interface';
 import { MetricValue } from '../reports/interfaces/report.interface';
+import { BeemSmsService } from '../beem-sms/beem-sms.service';
 
 @Injectable()
 export class MetaAdsService {
@@ -45,9 +46,98 @@ export class MetaAdsService {
     private readonly itemStockRepo: Repository<ItemStock>,
     private readonly httpService: HttpService,
     private readonly userContextService: UserContextService,
+    private readonly beemSms: BeemSmsService,
   ) {
     this.accessToken = process.env.META_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '';
     this.adAccountId = process.env.META_AD_ACCOUNT_ID || '';
+  }
+
+  /**
+   * Flight guard: find active boosted ad sets whose run window is about to end
+   * (or has already lapsed while still ACTIVE), and SMS the admin so the ads
+   * never silently go dark again. Returns the list of flagged ad sets.
+   *
+   * Boosted posts ("Guided Creation") deliver only between start_time and
+   * end_time; once end_time passes they stop spending even though their
+   * status stays ACTIVE — which is exactly how the winners went dark on Jun 14.
+   */
+  async checkAdFlights(warnWithinDays = 3): Promise<
+    Array<{ name: string; endTime: string; daysLeft: number }>
+  > {
+    if (!this.accessToken || !this.adAccountId) {
+      this.logger.warn('Meta Ads credentials not configured, skipping flight check');
+      return [];
+    }
+
+    const accountId = this.adAccountId.startsWith('act_')
+      ? this.adAccountId
+      : `act_${this.adAccountId}`;
+
+    const url = `${this.apiBaseUrl}/${accountId}/adsets`;
+    const params: Record<string, string> = {
+      fields: 'name,effective_status,end_time',
+      effective_status: JSON.stringify(['ACTIVE']),
+      limit: '200',
+      access_token: this.accessToken,
+    };
+
+    const response = await firstValueFrom(this.httpService.get(url, { params }));
+    const adsets: any[] = response.data?.data || [];
+
+    const now = Date.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const flagged: Array<{ name: string; endTime: string; daysLeft: number }> = [];
+
+    for (const a of adsets) {
+      if (!a.end_time) continue; // open-ended flight, never expires
+      const end = new Date(a.end_time).getTime();
+      const daysLeft = Math.ceil((end - now) / msPerDay);
+      // Only the actionable window: expiring within `warnWithinDays`, or that
+      // lapsed yesterday. Excludes the many stale boosts left ACTIVE with
+      // long-past end dates (they're dead, not "about to go dark").
+      if (daysLeft >= -1 && daysLeft <= warnWithinDays) {
+        flagged.push({
+          name: (a.name || 'Untitled').replace(/^Instagram post:\s*/, '').slice(0, 30),
+          endTime: a.end_time,
+          daysLeft,
+        });
+      }
+    }
+
+    if (flagged.length > 0) {
+      await this.sendFlightAlert(flagged);
+    } else {
+      this.logger.log('Ad flight check: all active ad sets have healthy run windows');
+    }
+
+    return flagged;
+  }
+
+  private async sendFlightAlert(
+    flagged: Array<{ name: string; endTime: string; daysLeft: number }>,
+  ): Promise<void> {
+    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '255753107301';
+    const lines = flagged
+      .map((f) =>
+        f.daysLeft < 0
+          ? `${f.name}: IMEISHA`
+          : `${f.name}: siku ${f.daysLeft}`,
+      )
+      .join('; ');
+    const message =
+      `Global Authentics ADS: matangazo ${flagged.length} yanakaribia kuisha — ${lines}. ` +
+      `Ongeza muda Ads Manager ili yasizime.`;
+
+    try {
+      await this.beemSms.sendSms(
+        adminPhone,
+        message,
+        'meta-ads:flight-expiry',
+      );
+      this.logger.warn(`Ad flight alert sent to admin: ${flagged.length} ad set(s) expiring`);
+    } catch (e) {
+      this.logger.error(`Failed to send ad flight alert: ${e.message}`);
+    }
   }
 
   /**

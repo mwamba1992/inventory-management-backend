@@ -11,12 +11,14 @@ import { MetaAdsService } from './meta-ads.service';
 import { MetaAdsCronService } from './meta-ads-cron.service';
 import { MetaAdsController } from './meta-ads.controller';
 import { SharedModule } from '../shared/shared.module';
+import { BeemSmsModule } from '../beem-sms/beem-sms.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([MetaAdInsight, Sale, WhatsAppOrder, Item, ItemPrice, ItemStock]),
     HttpModule,
     SharedModule,
+    BeemSmsModule,
   ],
   controllers: [MetaAdsController],
   providers: [MetaAdsService, MetaAdsCronService],

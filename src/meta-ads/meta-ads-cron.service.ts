@@ -27,4 +27,26 @@ export class MetaAdsCronService {
       );
     }
   }
+
+  /**
+   * Flight guard — runs daily at 7AM (after the insight pull) to catch boosted
+   * ad sets whose run window is about to end, and SMS the admin before they go
+   * dark. Boosted posts stop delivering when end_time passes even though their
+   * status stays ACTIVE, so this is the only reliable early warning.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_7AM)
+  async checkAdFlights() {
+    this.logger.log('Running Meta Ads flight-expiry check...');
+    try {
+      const flagged = await this.metaAdsService.checkAdFlights();
+      this.logger.log(
+        `Flight check complete: ${flagged.length} ad set(s) expiring within 3 days`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to run ad flight check: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
 }
