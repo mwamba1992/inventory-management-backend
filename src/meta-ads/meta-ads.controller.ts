@@ -42,4 +42,36 @@ export class MetaAdsController {
     );
     return { count, message: `Synced ${count} insight rows` };
   }
+
+  @Get('fatigue')
+  @ApiOperation({
+    summary: 'List ads whose 30-day frequency has crossed the rotation threshold',
+  })
+  async checkFatigue(@Query('threshold') threshold?: string): Promise<{
+    threshold: number;
+    flagged: Array<{ name: string; frequency: number; costPerConvo: number }>;
+  }> {
+    const t = threshold ? Number(threshold) : 1.7;
+    const flagged = await this.metaAdsService.checkCreativeFatigue(t);
+    return { threshold: t, flagged };
+  }
+
+  @Get('daily-report')
+  @ApiOperation({
+    summary: 'Preview yesterday\'s ad report (does not send the SMS)',
+  })
+  async previewDailyReport(): Promise<{
+    message: string;
+    adCount: number;
+    spend: number;
+  }> {
+    return this.metaAdsService.buildDailyAdReport();
+  }
+
+  @Get('freshness')
+  @ApiOperation({ summary: 'How stale the stored ad insight data is, in days' })
+  async checkFreshness(): Promise<{ ageDays: number | null; stale: boolean }> {
+    const ageDays = await this.metaAdsService.checkInsightFreshness();
+    return { ageDays, stale: ageDays === null || ageDays > 2 };
+  }
 }

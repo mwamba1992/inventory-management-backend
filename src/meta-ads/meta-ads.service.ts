@@ -141,6 +141,257 @@ export class MetaAdsService {
   }
 
   /**
+   * Creative fatigue guard: flag ads whose 30-day frequency has crossed the
+   * rotation threshold, and SMS the admin to shoot new creative.
+   *
+   * 1.7 is not a generic benchmark — it is this account's measured cliff.
+   * Across five Mi Band creatives and the Amazfit Active 2 ad, cost per
+   * conversation roughly doubles once monthly frequency passes it:
+   *
+   *   freq 1.61-1.65 -> $0.38-0.65/convo      freq 1.77-2.21 -> $0.66-1.24/convo
+   *
+   * CTR is deliberately NOT used as the signal. The Garmin ad held frequency
+   * 1.10 and stayed healthy at $0.65/convo while its CTR fell 3.24% -> 1.7%
+   * (that drop was budget scaling into colder audience, not fatigue).
+   */
+  async checkCreativeFatigue(
+    threshold = 1.7,
+    minSpendUsd = 5,
+  ): Promise<Array<{ name: string; frequency: number; costPerConvo: number }>> {
+    if (!this.accessToken || !this.adAccountId) {
+      this.logger.warn('Meta Ads credentials not configured, skipping fatigue check');
+      return [];
+    }
+
+    const accountId = this.adAccountId.startsWith('act_')
+      ? this.adAccountId
+      : `act_${this.adAccountId}`;
+
+    const until = new Date();
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+
+    // Window-level frequency (not summed daily rows) — reach is unique accounts
+    // over the range, so it cannot be added across days without inflating.
+    const response = await firstValueFrom(
+      this.httpService.get(`${this.apiBaseUrl}/${accountId}/insights`, {
+        params: {
+          fields: 'ad_name,spend,frequency,actions',
+          level: 'ad',
+          time_range: JSON.stringify({
+            since: since.toISOString().split('T')[0],
+            until: until.toISOString().split('T')[0],
+          }),
+          limit: '200',
+          access_token: this.accessToken,
+        },
+      }),
+    );
+
+    const flagged: Array<{ name: string; frequency: number; costPerConvo: number }> = [];
+
+    for (const row of response.data?.data || []) {
+      const frequency = Number(row.frequency || 0);
+      const spend = Number(row.spend || 0);
+      // Ignore ads too small to judge — a $2 boost can spike frequency on noise.
+      if (frequency < threshold || spend < minSpendUsd) continue;
+
+      const convos = this.extractConversions(row.actions);
+      flagged.push({
+        name: (row.ad_name || 'Untitled')
+          .replace(/^Instagram post:\s*/, '')
+          .replace(/\s+/g, ' ')
+          .slice(0, 30),
+        frequency,
+        costPerConvo: convos > 0 ? spend / convos : 0,
+      });
+    }
+
+    if (flagged.length > 0) {
+      await this.sendFatigueAlert(flagged, threshold);
+    } else {
+      this.logger.log(
+        `Creative fatigue check: no ad above frequency ${threshold} in the last 30 days`,
+      );
+    }
+
+    return flagged;
+  }
+
+  private async sendFatigueAlert(
+    flagged: Array<{ name: string; frequency: number; costPerConvo: number }>,
+    threshold: number,
+  ): Promise<void> {
+    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '255753107301';
+    const lines = flagged
+      .map((f) => {
+        const cost = f.costPerConvo > 0 ? ` ($${f.costPerConvo.toFixed(2)}/convo)` : '';
+        return `${f.name}: freq ${f.frequency.toFixed(2)}${cost}`;
+      })
+      .join('; ');
+    const message =
+      `Global Authentics ADS: matangazo ${flagged.length} yamechoka (frequency zaidi ya ${threshold}) — ${lines}. ` +
+      `Badilisha creative mpya, gharama ya kila mazungumzo inapanda maradufu.`;
+
+    try {
+      await this.beemSms.sendSms(adminPhone, message, 'meta-ads:creative-fatigue');
+      this.logger.warn(`Creative fatigue alert sent: ${flagged.length} ad(s) above ${threshold}`);
+    } catch (e) {
+      this.logger.error(`Failed to send fatigue alert: ${e.message}`);
+    }
+  }
+
+  /**
+   * Staleness guard: the insight sync silently stopped on 2026-07-06 and nobody
+   * noticed for five weeks, because a dead app produces no failing cron — it
+   * produces no cron at all. Any run that gets this far reports how stale the
+   * data is, so a gap surfaces the same week instead of never.
+   */
+  async checkInsightFreshness(maxAgeDays = 2): Promise<number | null> {
+    const row = await this.insightRepo
+      .createQueryBuilder('i')
+      .select('MAX(i.date)', 'maxDate')
+      .where('i.business_id = :businessId', { businessId: 1 })
+      .getRawOne();
+
+    const maxDate = row?.maxDate ?? row?.maxdate ?? null;
+    if (!maxDate) {
+      this.logger.error('Meta Ads freshness: no insight rows at all');
+      return null;
+    }
+
+    const ageDays = Math.floor(
+      (Date.now() - new Date(maxDate).getTime()) / (24 * 60 * 60 * 1000),
+    );
+    if (ageDays <= maxAgeDays) {
+      this.logger.log(`Meta Ads freshness OK — latest insight ${ageDays} day(s) old`);
+      return ageDays;
+    }
+
+    this.logger.error(
+      `Meta Ads data is STALE — latest insight is ${ageDays} days old (${maxDate})`,
+    );
+    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '255753107301';
+    try {
+      await this.beemSms.sendSms(
+        adminPhone,
+        `Global Authentics ADS: takwimu za matangazo hazijasasishwa kwa siku ${ageDays}. ` +
+          `Angalia kama server inafanya kazi.`,
+        'meta-ads:stale-data',
+      );
+    } catch (e) {
+      this.logger.error(`Failed to send staleness alert: ${e.message}`);
+    }
+    return ageDays;
+  }
+
+  /**
+   * Daily ad performance report, SMSed to the admin each morning.
+   *
+   * Cost per conversation is the headline number, not CTR or clicks — the
+   * account's best-CTR ad ever ("LIMITED STOCK ALERT", 3.63%) produced two
+   * conversations in six weeks, so CTR actively misleads here.
+   *
+   * Frequency is taken over a 30-day window, not from yesterday alone: a single
+   * day is always ~1.0 and would never reveal fatigue. 1.7 is where this
+   * account's cost per conversation historically doubles.
+   */
+  async buildDailyAdReport(): Promise<{
+    message: string;
+    adCount: number;
+    spend: number;
+  }> {
+    const accountId = this.adAccountId.startsWith('act_')
+      ? this.adAccountId
+      : `act_${this.adAccountId}`;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const day = yesterday.toISOString().split('T')[0];
+
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
+
+    const fetch = async (since: string, until: string) => {
+      const res = await firstValueFrom(
+        this.httpService.get(`${this.apiBaseUrl}/${accountId}/insights`, {
+          params: {
+            fields: 'ad_id,ad_name,spend,frequency,actions',
+            level: 'ad',
+            time_range: JSON.stringify({ since, until }),
+            limit: '200',
+            access_token: this.accessToken,
+          },
+        }),
+      );
+      return res.data?.data || [];
+    };
+
+    const [daily, rolling] = await Promise.all([
+      fetch(day, day),
+      fetch(monthAgo.toISOString().split('T')[0], day),
+    ]);
+
+    // 30-day frequency keyed by ad, so the daily rows can borrow it.
+    const freqByAd = new Map<string, number>(
+      rolling.map((r: any) => [r.ad_id, Number(r.frequency || 0)]),
+    );
+
+    const lines: string[] = [];
+    const tired: string[] = [];
+    let totalSpend = 0;
+
+    for (const row of daily) {
+      const spend = Number(row.spend || 0);
+      if (spend <= 0) continue;
+      totalSpend += spend;
+
+      const convos = this.extractConversions(row.actions);
+      const freq = freqByAd.get(row.ad_id) ?? 0;
+      const short = (row.ad_name || 'Tangazo')
+        .replace(/^Instagram post:\s*/, '')
+        .replace(/[^\p{L}\p{N} ]/gu, '')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .join(' ')
+        .slice(0, 14);
+
+      lines.push(
+        convos > 0
+          ? `${short}: ${convos} mazungumzo @$${(spend / convos).toFixed(2)}, f${freq.toFixed(2)}`
+          : `${short}: $${spend.toFixed(2)}, hakuna mazungumzo, f${freq.toFixed(2)}`,
+      );
+      if (freq >= 1.7) tired.push(short);
+    }
+
+    const header = `GLOBAL AUTHENTICS ADS ${day}: matangazo ${lines.length}, $${totalSpend.toFixed(2)}`;
+    const warn =
+      tired.length > 0
+        ? `ONYO: ${tired.join(', ')} yamechoka (freq>1.7) — badilisha creative.`
+        : 'Freq zote chini ya 1.7.';
+
+    const message =
+      lines.length === 0
+        ? `${header}. HAKUNA TANGAZO LINALOENDELEA — angalia Ads Manager.`
+        : [header, ...lines, warn].join('\n');
+
+    return { message, adCount: lines.length, spend: totalSpend };
+  }
+
+  async sendDailyAdReport(): Promise<string> {
+    const { message, adCount } = await this.buildDailyAdReport();
+    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '255753107301';
+    try {
+      await this.beemSms.sendSms(adminPhone, message, 'meta-ads:daily-report');
+      this.logger.log(`Daily ad report sent (${adCount} active ad(s))`);
+    } catch (e) {
+      this.logger.error(`Failed to send daily ad report: ${e.message}`);
+    }
+    return message;
+  }
+
+  /**
    * Fetch insights from Meta Marketing API and store in DB
    */
   async fetchAndStoreInsights(
