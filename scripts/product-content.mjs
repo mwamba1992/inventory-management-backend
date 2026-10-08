@@ -22,6 +22,8 @@
 //   --token=<jwt>   Admin token. Required with --apply.
 //   --file=<path>   CSV path (default ./scripts/product-content.csv)
 //   --only=<SKU>    Just this one SKU.
+//   --fields=<list> Which columns to apply: any of name,description,category
+//                   (default: all three). E.g. --fields=category to recategorise only.
 //   --apply         Actually write. Without it nothing is changed.
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -35,6 +37,9 @@ const args = Object.fromEntries(
 
 const API = (args.api || 'https://business.mwendavano.com/api').replace(/\/$/, '');
 const CSV = args.file || './scripts/product-content.csv';
+
+const FIELDS = ['name', 'description', 'category'];
+const fields = args.fields ? String(args.fields).split(',').map((f) => f.trim()) : FIELDS;
 
 const die = (msg) => {
   console.error(`\n  ${msg}\n`);
@@ -70,6 +75,8 @@ function parseCsv(text) {
   return body.map((cells) => Object.fromEntries(header.map((key, i) => [key.trim(), (cells[i] ?? '').trim()])));
 }
 
+const badFields = fields.filter((f) => !FIELDS.includes(f));
+if (badFields.length) die(`Unknown --fields value(s): ${badFields.join(', ')}. Use ${FIELDS.join(', ')}.`);
 if (!existsSync(CSV)) die(`No file at ${CSV}.`);
 if (args.apply && !args.token) die('--apply needs --token=<admin jwt>.');
 
@@ -107,10 +114,12 @@ for (const row of rows) {
   }
 
   const update = {};
-  if (row.name && row.name !== product.name) update.name = row.name;
-  if (row.description && row.description !== (product.desc ?? '')) update.desc = row.description;
+  if (fields.includes('name') && row.name && row.name !== product.name) update.name = row.name;
+  if (fields.includes('description') && row.description && row.description !== (product.desc ?? '')) update.desc = row.description;
 
-  if (row.category && row.category !== product.category?.code) update.categoryId = categoryIds.get(row.category);
+  if (fields.includes('category') && row.category && row.category !== product.category?.code) {
+    update.categoryId = categoryIds.get(row.category);
+  }
 
   if (Object.keys(update).length === 0) {
     skipped++;
