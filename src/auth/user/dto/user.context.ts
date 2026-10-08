@@ -30,6 +30,12 @@ export class UserContextService {
       return payload.businessId;
     }
 
+    // A signed-in storefront customer (set by CustomerAuthGuard).
+    const customer = this.request['customer'];
+    if (customer?.businessId) {
+      return customer.businessId;
+    }
+
     const headerBusinessId = this.request.headers['x-business-id'];
     if (headerBusinessId) {
       return Number(headerBusinessId);

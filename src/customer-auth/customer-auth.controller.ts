@@ -24,6 +24,9 @@ import { RequestOtpDto } from './dto/request-otp.dto';
 import { WhatsAppOrderService } from '../whatsapp/services/whatsapp-order.service';
 import { Public } from '../utils/decorators';
 
+// Every route here is @Public(): that only steps past the staff AuthGuard,
+// which refuses customer tokens. The routes for a signed-in customer are
+// authenticated by CustomerAuthGuard instead.
 @ApiTags('Customer Authentication')
 @Controller('customer-auth')
 export class CustomerAuthController {
@@ -118,6 +121,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Get('me')
   @UseGuards(CustomerAuthGuard)
   @ApiBearerAuth()
@@ -135,6 +139,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Put('profile')
   @UseGuards(CustomerAuthGuard)
   @ApiBearerAuth()
@@ -153,6 +158,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Post('change-password')
   @UseGuards(CustomerAuthGuard)
   @ApiBearerAuth()
@@ -171,6 +177,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Get('orders')
   @UseGuards(CustomerAuthGuard)
   @ApiBearerAuth()
@@ -217,6 +224,7 @@ export class CustomerAuthController {
     };
   }
 
+  @Public()
   @Get('orders/stats')
   @UseGuards(CustomerAuthGuard)
   @ApiBearerAuth()

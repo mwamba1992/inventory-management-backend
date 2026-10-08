@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Constants } from '../utils/constants';
 import { Request } from 'express';
@@ -25,19 +25,30 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('No token provided');
     }
 
+    let payload: any;
     try {
-      const payload = await this.jwtService.verifyAsync(
+      payload = await this.jwtService.verifyAsync(
         token,
         {
           secret: Constants.JWT_SECRET
         }
       );
-      request['user'] = payload;
-      this.logger.log(`Auth OK: user=${payload.sub}, businessId=${payload.businessId}, url=${request.url}`);
     } catch (error) {
       this.logger.error(`JWT verification failed for ${request.url}: ${error.message}`);
       throw new UnauthorizedException('Invalid or expired token');
     }
+
+    // Customer tokens are signed with the same secret as staff tokens, so a
+    // valid signature alone does not make the caller staff. Storefront
+    // customers reach their own routes through @Public() + CustomerAuthGuard,
+    // never through here.
+    if (payload.type === 'customer') {
+      this.logger.warn(`Customer token refused on staff route ${request.method} ${request.url}`);
+      throw new ForbiddenException('Staff access only');
+    }
+
+    request['user'] = payload;
+    this.logger.log(`Auth OK: user=${payload.sub}, businessId=${payload.businessId}, url=${request.url}`);
     return true;
   }
 
