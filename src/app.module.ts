@@ -29,6 +29,9 @@ import { User } from './auth/user/entities/user.entity';
 import { Role } from './auth/role/entities/role.entity';
 import { Permission } from './auth/permission/entities/permission.entity';
 import { ItemPrice } from './items/item/entities/item-price.entity';
+import { ItemImage } from './items/item/entities/item-image.entity';
+import { ProductReview } from './items/reviews/entities/product-review.entity';
+import { ReviewModule } from './items/reviews/review.module';
 import { ItemStock } from './items/item/entities/item-stock.entity';
 import { ItemStockDistribution } from './items/item/entities/item-stock-distribution.entity';
 import { ItemAccountMapping } from './items/item/entities/item-account-mapping.entity';
@@ -105,6 +108,8 @@ import { CashMovement } from './cash/entities/cash-movement.entity';
         SmsMessage,
         PhoneOtp,
         CashMovement,
+        ItemImage,
+        ProductReview,
       ],
       database: process.env.DB_DATABASE || 'inventorydb',
       schema: process.env.DB_SCHEMA || 'core',
@@ -113,6 +118,7 @@ import { CashMovement } from './cash/entities/cash-movement.entity';
     }),
     AuthModule,
     ItemModule,
+    ReviewModule,
     TransactionModule,
     AccountModule,
     CommonModule,

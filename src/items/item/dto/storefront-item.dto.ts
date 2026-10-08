@@ -44,11 +44,20 @@ export class StorefrontItemDto {
   @ApiProperty({ nullable: true })
   imageUrl: string | null;
 
+  @ApiProperty({
+    type: [String],
+    description: 'Every photo, main one first. Empty when the product has none.',
+  })
+  images: string[];
+
   @ApiProperty({ enum: ItemCondition, example: ItemCondition.NEW })
   condition: ItemCondition;
 
   @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
 
   @ApiProperty({ type: StorefrontCategoryDto, nullable: true })
   category: StorefrontCategoryDto | null;
@@ -68,4 +77,14 @@ export class StorefrontItemDto {
 
   @ApiProperty({ description: 'Units on hand across all warehouses', example: 12 })
   totalStock: number;
+
+  @ApiProperty({
+    description: 'Average of published customer ratings. Null when there are none.',
+    example: 4.6,
+    nullable: true,
+  })
+  ratingAverage: number | null;
+
+  @ApiProperty({ description: 'Number of published customer ratings', example: 12 })
+  ratingCount: number;
 }

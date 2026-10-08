@@ -17,6 +17,8 @@ import { ColorCategory } from '../../settings/color-category/entities/color-cate
 import { Brand } from '../../settings/brand/entities/brand.entity';
 import { CloudinaryService } from './services/cloudinary.service';
 import { SharedModule } from '../../shared/shared.module';
+import { ItemImage } from './entities/item-image.entity';
+import { ProductReview } from '../reviews/entities/product-review.entity';
 
 @Module({
   imports: [
@@ -33,7 +35,9 @@ import { SharedModule } from '../../shared/shared.module';
       Sale,
       ItemSupplier,
       ColorCategory,
-      Brand
+      Brand,
+      ItemImage,
+      ProductReview,
     ]),
     SharedModule,
   ],

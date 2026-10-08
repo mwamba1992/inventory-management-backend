@@ -40,6 +40,7 @@ import { ItemStockDistribution } from './entities/item-stock-distribution.entity
 import { CloudinaryService } from './services/cloudinary.service';
 import { StorefrontItemDto } from './dto/storefront-item.dto';
 import { Public } from '../../utils/decorators';
+import { ItemGallery } from './item.service';
 
 @ApiTags('Items')
 @Controller('items')
@@ -379,6 +380,84 @@ export class ItemController {
       imageUrl: uploadResult.secure_url,
       item,
     };
+  }
+
+  // ========== PHOTO GALLERY ==========
+  // Extra photos beyond the main one. All staff-only (no @Public()).
+
+  private assertImageFile(file: Express.Multer.File): void {
+    if (!file) throw new BadRequestException('No file uploaded');
+
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Invalid file type. Only JPEG, PNG, and WebP images are allowed.',
+      );
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size must be less than 5MB');
+    }
+  }
+
+  @Get(':id/images')
+  @ApiOperation({ summary: 'Main photo and gallery of a product' })
+  getGallery(@Param('id', ParseIntPipe) id: number): Promise<ItemGallery> {
+    return this.itemService.getGallery(id);
+  }
+
+  @Post(':id/images')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Add a photo to a product',
+    description:
+      "Becomes the main photo if the product has none, otherwise joins the end of the gallery. Up to 8 photos per product.",
+  })
+  async addGalleryImage(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<ItemGallery> {
+    this.assertImageFile(file);
+    await this.itemService.assertGalleryHasRoom(id);
+
+    const uploaded = await this.cloudinaryService.uploadImage(file);
+    return this.itemService.addGalleryImage(id, uploaded.secure_url);
+  }
+
+  @Put(':id/images/order')
+  @ApiOperation({ summary: 'Set the order of the gallery photos' })
+  reorderGallery(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { imageIds: number[] },
+  ): Promise<ItemGallery> {
+    return this.itemService.reorderGallery(id, body?.imageIds);
+  }
+
+  @Put(':id/images/:imageId/main')
+  @ApiOperation({ summary: 'Make a gallery photo the main one (the old main photo takes its place)' })
+  makeMainImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('imageId', ParseIntPipe) imageId: number,
+  ): Promise<ItemGallery> {
+    return this.itemService.makeMainImage(id, imageId);
+  }
+
+  @Delete(':id/images/:imageId')
+  @ApiOperation({ summary: 'Delete a gallery photo' })
+  async removeGalleryImage(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('imageId', ParseIntPipe) imageId: number,
+  ): Promise<ItemGallery> {
+    const { url, gallery } = await this.itemService.removeGalleryImage(id, imageId);
+
+    // The row is already gone; a stored file that fails to delete is litter,
+    // not a reason to tell the admin the delete failed.
+    try {
+      await this.cloudinaryService.deleteImage(this.cloudinaryService.extractPublicId(url));
+    } catch (error) {
+      this.logger.warn(`Could not delete stored file for ${url}: ${error.message}`);
+    }
+    return gallery;
   }
 
   @Put(':id/image')

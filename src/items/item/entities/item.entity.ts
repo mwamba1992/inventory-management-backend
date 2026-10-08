@@ -18,6 +18,7 @@ import { ItemAccountMapping } from './item-account-mapping.entity';
 import { Warehouse } from '../../../settings/warehouse/entities/warehouse.entity';
 import { ItemSupplier } from '../../../settings/item-suppliers/entities/item-supplier.entity';
 import { Brand } from '../../../settings/brand/entities/brand.entity';
+import { ItemImage } from './item-image.entity';
 
 export enum ItemCondition {
   NEW = 'new',
@@ -83,4 +84,8 @@ export class Item extends BaseEntity {
 
   @OneToMany(() => ItemAccountMapping, (mapping) => mapping.item)
   accountMappings: ItemAccountMapping[];
+
+  /** Photos beyond the main one (`imageUrl`), in gallery order. */
+  @OneToMany(() => ItemImage, (image) => image.item)
+  images: ItemImage[];
 }

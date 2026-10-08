@@ -25,6 +25,21 @@ import { ColorCategory } from '../../settings/color-category/entities/color-cate
 import { Brand } from '../../settings/brand/entities/brand.entity';
 import { UserContextService } from '../../auth/user/dto/user.context';
 import { StorefrontItemDto } from './dto/storefront-item.dto';
+import { ItemImage } from './entities/item-image.entity';
+import { ProductReview, ReviewStatus } from '../reviews/entities/product-review.entity';
+
+/** Main photo plus this many more. Enough for every angle; few enough to load quickly. */
+export const MAX_GALLERY_IMAGES = 7;
+
+export interface ItemGallery {
+  main: string | null;
+  images: { id: number; url: string; position: number }[];
+}
+
+interface RatingSummary {
+  average: number;
+  count: number;
+}
 
 @Injectable()
 export class ItemService {
@@ -53,6 +68,10 @@ export class ItemService {
     private readonly colorCategoryRepository: Repository<ColorCategory>,
     @InjectRepository(Brand)
     private readonly brandRepository: Repository<Brand>,
+    @InjectRepository(ItemImage)
+    private readonly itemImageRepository: Repository<ItemImage>,
+    @InjectRepository(ProductReview)
+    private readonly reviewRepository: Repository<ProductReview>,
     private readonly userContextService: UserContextService,
   ) {}
 
@@ -149,31 +168,64 @@ export class ItemService {
    * figures, and everything on these two methods is served without a token.
    */
   async findAllForStorefront(): Promise<StorefrontItemDto[]> {
-    const items = await this.itemRepository.find({
-      where: { businessId: this.userContextService.getBusinessId() },
-      relations: ['category', 'brand', 'prices', 'stock'],
-      order: { createdAt: 'DESC' },
-    });
+    const businessId = this.userContextService.getBusinessId();
+    const [items, ratings] = await Promise.all([
+      this.itemRepository.find({
+        where: { businessId },
+        relations: ['category', 'brand', 'prices', 'stock', 'images'],
+        order: { createdAt: 'DESC' },
+      }),
+      this.ratingSummaries(businessId),
+    ]);
 
-    return items.map((item) => this.toStorefrontItem(item));
+    return items.map((item) => this.toStorefrontItem(item, ratings.get(item.id)));
   }
 
   async findOneForStorefront(id: number): Promise<StorefrontItemDto> {
+    const businessId = this.userContextService.getBusinessId();
     const item = await this.itemRepository.findOne({
-      where: { id, businessId: this.userContextService.getBusinessId() },
-      relations: ['category', 'brand', 'prices', 'stock'],
+      where: { id, businessId },
+      relations: ['category', 'brand', 'prices', 'stock', 'images'],
     });
 
     if (!item) throw new NotFoundException('Item not found');
-    return this.toStorefrontItem(item);
+    const ratings = await this.ratingSummaries(businessId, id);
+    return this.toStorefrontItem(item, ratings.get(item.id));
   }
 
-  private toStorefrontItem(item: Item): StorefrontItemDto {
+  /** Average and count of published ratings per item, in one grouped query. */
+  private async ratingSummaries(
+    businessId: number,
+    itemId?: number,
+  ): Promise<Map<number, RatingSummary>> {
+    const query = this.reviewRepository
+      .createQueryBuilder('review')
+      .select('review.itemId', 'itemId')
+      .addSelect('AVG(review.rating)', 'average')
+      .addSelect('COUNT(*)', 'count')
+      .where('review.businessId = :businessId', { businessId })
+      .andWhere('review.status = :status', { status: ReviewStatus.PUBLISHED })
+      .groupBy('review.itemId');
+    if (itemId) query.andWhere('review.itemId = :itemId', { itemId });
+
+    const rows = await query.getRawMany<{ itemId: number; average: string; count: string }>();
+    return new Map(
+      rows.map((row) => [
+        Number(row.itemId),
+        { average: Math.round(Number(row.average) * 10) / 10, count: Number(row.count) },
+      ]),
+    );
+  }
+
+  private toStorefrontItem(item: Item, rating?: RatingSummary): StorefrontItemDto {
     const activePrice = item.prices?.find((price) => price.isActive);
     const totalStock = (item.stock ?? []).reduce(
       (sum, stock) => sum + (stock.quantity || 0),
       0,
     );
+    const gallery = [...(item.images ?? [])]
+      .sort((a, b) => a.position - b.position || a.id - b.id)
+      .map((image) => image.url);
 
     return {
       id: item.id,
@@ -181,8 +233,10 @@ export class ItemService {
       code: item.code ?? null,
       desc: item.desc ?? null,
       imageUrl: item.imageUrl ?? null,
+      images: [...new Set([item.imageUrl, ...gallery].filter(Boolean))],
       condition: item.condition,
       createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
       category: item.category
         ? {
             id: item.category.id,
@@ -194,7 +248,114 @@ export class ItemService {
       sellingPrice: activePrice ? Number(activePrice.sellingPrice) : null,
       inStock: totalStock > 0,
       totalStock,
+      ratingAverage: rating?.average ?? null,
+      ratingCount: rating?.count ?? 0,
     };
+  }
+
+  // ========== PHOTO GALLERY ==========
+  // `imageUrl` is the main photo; ItemImage rows are the rest. A product's
+  // first photo always becomes the main one.
+
+  private async findItemWithImages(id: number): Promise<Item> {
+    const item = await this.itemRepository.findOne({
+      where: { id, businessId: this.userContextService.getBusinessId() },
+      relations: ['images'],
+    });
+    if (!item) throw new NotFoundException('Item not found');
+    return item;
+  }
+
+  private toGallery(item: Item): ItemGallery {
+    return {
+      main: item.imageUrl ?? null,
+      images: [...(item.images ?? [])]
+        .sort((a, b) => a.position - b.position || a.id - b.id)
+        .map(({ id, url, position }) => ({ id, url, position })),
+    };
+  }
+
+  async getGallery(id: number): Promise<ItemGallery> {
+    return this.toGallery(await this.findItemWithImages(id));
+  }
+
+  /** Whether another photo may be added. Checked before uploading, so nothing is stored and then refused. */
+  async assertGalleryHasRoom(id: number): Promise<void> {
+    const item = await this.findItemWithImages(id);
+    if (item.imageUrl && (item.images ?? []).length >= MAX_GALLERY_IMAGES) {
+      throw new BadRequestException(
+        `A product can have at most ${MAX_GALLERY_IMAGES + 1} photos. Delete one first.`,
+      );
+    }
+  }
+
+  async addGalleryImage(id: number, url: string): Promise<ItemGallery> {
+    const item = await this.findItemWithImages(id);
+
+    if (!item.imageUrl) {
+      // update(), not save(): the item was loaded with its images, and saving
+      // it would make TypeORM reconcile that relation as well.
+      await this.itemRepository.update(item.id, { imageUrl: url });
+      item.imageUrl = url;
+      return this.toGallery(item);
+    }
+
+    const last = Math.max(-1, ...(item.images ?? []).map((image) => image.position));
+    const image = await this.itemImageRepository.save(
+      this.itemImageRepository.create({ itemId: item.id, url, position: last + 1 }),
+    );
+    item.images = [...(item.images ?? []), image];
+    return this.toGallery(item);
+  }
+
+  /** Removes a gallery photo and returns its URL, so the caller can delete the stored file. */
+  async removeGalleryImage(id: number, imageId: number): Promise<{ url: string; gallery: ItemGallery }> {
+    const item = await this.findItemWithImages(id);
+    const image = (item.images ?? []).find((candidate) => candidate.id === imageId);
+    if (!image) throw new NotFoundException('Photo not found');
+
+    await this.itemImageRepository.delete(image.id);
+    item.images = item.images.filter((candidate) => candidate.id !== imageId);
+    return { url: image.url, gallery: this.toGallery(item) };
+  }
+
+  /** Sets the gallery order to exactly the given ids. */
+  async reorderGallery(id: number, imageIds: number[]): Promise<ItemGallery> {
+    const item = await this.findItemWithImages(id);
+    const images = item.images ?? [];
+
+    const sameSet =
+      Array.isArray(imageIds) &&
+      imageIds.length === images.length &&
+      new Set(imageIds).size === imageIds.length &&
+      imageIds.every((imageId) => images.some((image) => image.id === imageId));
+    if (!sameSet) {
+      throw new BadRequestException('imageIds must list every gallery photo of this product exactly once');
+    }
+
+    for (const image of images) image.position = imageIds.indexOf(image.id);
+    await this.itemImageRepository.save(images);
+    return this.toGallery(item);
+  }
+
+  /** Swaps a gallery photo with the main one. */
+  async makeMainImage(id: number, imageId: number): Promise<ItemGallery> {
+    const item = await this.findItemWithImages(id);
+    const image = (item.images ?? []).find((candidate) => candidate.id === imageId);
+    if (!image) throw new NotFoundException('Photo not found');
+
+    const previousMain = item.imageUrl;
+    await this.itemRepository.update(item.id, { imageUrl: image.url });
+    item.imageUrl = image.url;
+
+    if (previousMain) {
+      image.url = previousMain;
+      await this.itemImageRepository.save(image);
+    } else {
+      await this.itemImageRepository.delete(image.id);
+      item.images = item.images.filter((candidate) => candidate.id !== imageId);
+    }
+    return this.toGallery(item);
   }
 
   async update(id: number, updateItemDto: UpdateItemDto): Promise<Item> {
