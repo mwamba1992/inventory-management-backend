@@ -26,6 +26,52 @@ export class MetaAdsCronService {
         error.stack,
       );
     }
+
+    // Runs even if the pull above threw — a failed sync is exactly when the
+    // staleness warning matters most.
+    try {
+      await this.metaAdsService.checkInsightFreshness();
+    } catch (error) {
+      this.logger.error(`Freshness check failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Daily performance report — 7:30AM, after the 6AM sync and the 7AM flight
+   * check, so the SMS reflects data pulled the same morning.
+   */
+  @Cron('30 7 * * *')
+  async sendDailyReport() {
+    this.logger.log('Sending daily Meta Ads report...');
+    try {
+      await this.metaAdsService.sendDailyAdReport();
+    } catch (error) {
+      this.logger.error(
+        `Failed to send daily ad report: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Creative fatigue guard — runs daily at 8AM. Frequency above ~1.7 is this
+   * account's measured point where cost per conversation doubles, so the admin
+   * gets told to rotate creative before the money is wasted rather than after.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  async checkCreativeFatigue() {
+    this.logger.log('Running Meta Ads creative fatigue check...');
+    try {
+      const flagged = await this.metaAdsService.checkCreativeFatigue();
+      this.logger.log(
+        `Fatigue check complete: ${flagged.length} ad(s) above the rotation threshold`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to run creative fatigue check: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 
   /**
